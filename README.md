@@ -55,27 +55,31 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 ## METHODS
 
-* `Triangle(**kwargs)`: Constructor. As already described above.
+* t = `Triangle(**kwargs)`: Constructor. As already described above.
 
-* `threesides()`: Return all three sides of the Triangle, as a tuple `(a, b, c)`.
+* t.`threesides()`: Return all three sides of `t`, as a tuple `(a, b, c)`.
 
-* `threeangles()`: Return all three angles of the Triangle, as a tuple.
+* t.`threeangles()`: Return all three angles of `t`, as a tuple.
 
-* `area()`: Compute Triangle's area (uses Heron's formula).
+* t.`area()`: Return area of `t`.
 
-* `opposing(name)`: CLASSMETHOD. Given any attribute name return the name of the attribute opposing it. For example, opposing('a') --> 'alpha'; opposing('alpha') --> 'a'.
+* Triangle.`opposing(name)`: Given any attribute name return the name of the attribute opposing it. For example, opposing('a') --> 'alpha'; opposing('alpha') --> 'a'.
 
-* `other_names(*args)`: CLASSMETHOD. Given one or more names, all either side names or angle names, return a list of the unspecified names. For example, other_names('a', 'b') --> 'c'.
+* Triangle.`other_names(*args)`: Given one or more names, all either side names or angle names, return a list of the unspecified names. For example, other_names('a', 'b') --> 'c'.
 
-* `canonicaltriangle()`: Factory function. Creates a NEW Triangle with the same parameters but with the sides ordered from smallest to largest such that `a <= b <= c`.
+* t2 = t.`canonicaltriangle()`: Factory function. Creates a NEW Triangle with the same parameters but with the sides ordered from smallest to largest such that `a <= b <= c`.
 
-* `equilateral()`: Returns True if the `Triangle` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`).
+* t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`).
 
-* `isoceles()`: Returns True if an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle.
+* t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle.
 
-* `pythagorean()`: Returns True if a Pythagorean (i.e., Right) triangle.
+* t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle.
 
-* `ssa_to_sss(**kwargs)`: CLASSMETHOD. Returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call.
+* Triangle.`ssa_to_sss(**kwargs)`: Returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call.
+
+* t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation reflection. Uses isclose()
+
+### More about `ssa_to_sss`
 
 An example of how to use `ssa_to_sss`:
 
@@ -87,4 +91,37 @@ produces the same `Triangle` that:
     t1 = Triangle(a=3, b=4, c=1.8284271)
 
 produces.
+
+## Subclassing
+Three class attributes can be overridden by subclasses if desired for customizing Triangles:
+
+* `side_names`: tuple of three names (each a string) of each respective side of a Triangle. Default is `('a', 'b', 'c')`.
+
+* `angle_names`: tuple of three of each respective angle of a Triangle. Default is `('alpha', 'beta', 'gamma')`.
+
+    NOTE: The order of entries in `side_names` and `angle_names` defines an opposition relationship; i.e., `angle_names[i]` is the angle in opposition to `side_names[i]`.
+
+* `isclose`: method for comparing two floating-point values to see if they are "approximately equal". Override the default of `math.isclose` if a different tolerance or methodology is required.
+
+
+
+EXAMPLES:
+
+This subclass provides Triangles where the angles have been renamed to be A1, A2, and A3:
+
+    class TriangleX(Triangle):
+        angle_names = ('A1', 'A2', 'A3')
+
+    right_triangle = TriangleX(A1=0.6435011087932843,
+                               A3=math.pi/2,
+                               a=3)
+
+
+This subclass requires that all comparisons be EXACT (this may yield surprising results for some methods, due to floating point inexactness):
+
+    class TriangleQ(Triangle):
+        @staticmethod
+        def isclose(a, b):
+	    return a == b
+
 
