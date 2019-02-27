@@ -23,6 +23,9 @@ class Triangle:
     #
     #    angle_names[i] is the angle opposing side_names[i]
 
+    # function called to determine when floats are "close" (can be overridden)
+    isclose = math.isclose
+
     # Triangle(**kwargs):
     #
     # Specify a triangle, giving sides and angles via keyword args.
@@ -279,24 +282,24 @@ class Triangle:
                            for k in self.side_names})
 
     def equilateral(self):
-        """Return TRUE if triangle is equilateral (uses math.isclose)."""
+        """Return TRUE if triangle is equilateral (uses isclose)."""
         a, b, c = self.threesides()
-        return math.isclose(a, b) and math.isclose(b, c) and math.isclose(a, c)
+        return self.isclose(a, b) and self.isclose(b, c) and self.isclose(a, c)
 
     def isoceles(self):
-        """Return TRUE if triangle is isoceles (uses math.isclose)."""
+        """Return TRUE if triangle is isoceles (uses isclose)."""
         a, b, c = self.threesides()
 
         # NOTE: "inclusive" definition in which equilateral is also isoceles
-        return math.isclose(a, b) or math.isclose(a, c) or math.isclose(b, c)
+        return self.isclose(a, b) or self.isclose(a, c) or self.isclose(b, c)
 
     def pythagorean(self):
-        """Return TRUE if triangle is a right triangle (uses math.isclose)."""
+        """Return TRUE if triangle is a right triangle (uses isclose)."""
         abc = self.threesides()
         abc.sort()
         a, b, c = abc
 
-        return math.isclose((a * a) + (b * b), (c * c))
+        return self.isclose((a * a) + (b * b), (c * c))
 
     def area(self):
         """Return triangle area. Always uses Heron's formula."""
@@ -306,6 +309,18 @@ class Triangle:
 
         return math.sqrt(s * (s - a) * (s - b) * (s - c))
 
+    def similar(self, t):
+        """Return True if triangle t is geometrically similar to this one.
+
+        Uses isclose(). Two triangles are similar if one can be converted
+        to the other by any combination of linearly scaling (all) the sides
+        and performing rotation reflection.
+        """
+
+        # sorting the angles is essentially rotation/reflection as needed
+        return all(map(self.isclose,
+                       sorted(self.threeangles()),
+                       sorted(t.threeangles())))
 
 if __name__ == '__main__':
     def triangle_tests():
@@ -330,6 +345,10 @@ if __name__ == '__main__':
             for a in tx.side_names + tx.angle_names:
                 if not math.isclose(getattr(tx, a), getattr(t345, a)):
                     raise ValueError(v)
+            # this is redundant if above passed, but check "similar" anyway
+            if not t345.similar(tx):
+                raise ValueError("similarity failed {}".format(tx))
+
             # tolerance is generous but this is "just a check"
             if not math.isclose(tx.area(), t345.area(), rel_tol=0.000001):
                 raise ValueError(tx, tx.area())
