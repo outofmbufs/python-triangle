@@ -63,7 +63,9 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`area()`: Return area of `t`.
 
-* Triangle.`opposing(name)`: Given any attribute name return the name of the attribute opposing it. For example, opposing('a') --> 'alpha'; opposing('alpha') --> 'a'.
+* Triangle.`opposing_name(name)`: Given any attribute name return the name of the attribute opposing it. For example, opposing('a') --> 'alpha'; opposing('alpha') --> 'a'.
+
+* t.`opposing(name)`: Given any attribute name return the VALUE of the attribute opposing it. For example, t.opposing('a') will return t.alpha.
 
 * Triangle.`other_names(*args)`: Given one or more names, all either side names or angle names, return a list of the unspecified names. For example, other_names('a', 'b') --> 'c'.
 
