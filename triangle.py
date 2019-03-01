@@ -208,6 +208,8 @@ class Triangle:
                 gamma -= getattr(self, a)
             else:
                 gamma_name = a
+        if gamma <= 0:
+            raise ValueError("{}: no solution for third angle".format(self))
 
         setattr(self, gamma_name, gamma)
 
@@ -371,6 +373,8 @@ if __name__ == '__main__':
                 {'a': 0, 'b': 4, 'c': 5},                # <= 0
                 {'a': 3, 'beta': 4, 'c': 5},             # beta too big
                 {'a': 4, 'b': 4.1, 'alpha': math.pi/2},  # no beta works
+                                                         # angles too big
+                {'a': 4, 'beta': 0.75*math.pi, 'gamma': 0.75*math.pi},
                 ]
         for v in vxxx:
             try:
