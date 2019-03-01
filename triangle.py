@@ -61,10 +61,13 @@ class Triangle:
         # sv: NAMES of sides given, av: NAMES of angles given
         sv, av = self.__kwargshelper(self, kwargs)
 
-        # remember these so __repr__ can specifically reproduce them
-        # NOTE they are DELIBERATELY put into canonicalized order
-        self.__specifiernames = [
-            n for n in self.side_names + self.angle_names if n in sv + av]
+        # remember the original parameters, mostly for __repr__
+        # NOTE that this puts them into a canonical order (deliberately).
+        # Therefore it is a list of tuples rather than a dict, although
+        # the newest python dict semantics are now order-preserving as well.
+        self.__origparams = [
+            (n, kwargs[n])
+            for n in self.side_names + self.angle_names if n in sv + av]
 
         # all valid forms have exactly three elements in aggregate
         total = len(sv) + len(av)
@@ -109,8 +112,8 @@ class Triangle:
         # Whatever three attributes were provided to __init__ are the repr
         # (but, of course, with whatever their current values are).
         s = "{}(".format(self.__class__.__name__)
-        for a in self.__specifiernames:
-            s += "{}={}, ".format(a, getattr(self, a))
+        for attr, origv in self.__origparams:
+            s += "{}={}, ".format(attr, getattr(self, attr))
 
         return s.rstrip(", ") + ")"
 
@@ -333,6 +336,14 @@ class Triangle:
                        sorted(self.threeangles()),
                        sorted(t.threeangles())))
 
+    # obviously this is just a convenience function as all it does
+    # is multiply each side by the given factor.
+    def scale(self, factor):
+        """Scale a triangle by the given factor."""
+        if factor <= 0:
+            raise ValueError("{} illegal scale factor {}".format(self, factor))
+        for n in self.side_names:
+            setattr(self, n, getattr(self, n) * factor)
 
 if __name__ == '__main__':
     def triangle_tests():

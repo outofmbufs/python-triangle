@@ -71,6 +71,8 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t2 = t.`canonicaltriangle()`: Factory function. Creates a NEW Triangle with the same parameters but with the sides ordered from smallest to largest such that `a <= b <= c`.
 
+* t.`scale(factor)`: Adjusts (multiplies) all three sides by `factor`.
+
 * t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`).
 
 * t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle.
@@ -86,11 +88,11 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 An example of how to use `ssa_to_sss`:
 
     solution_1, solution_2 = Triangle.ssa_to_sss(a=3, b=4, alpha=math.pi/4)
-    t = Triangle(*solution_1)
+    t = Triangle(**solution_1)
 
 produces the same `Triangle` that:
 
-    t1 = Triangle(a=3, b=4, c=1.8284271)
+    t1 = Triangle(a=3, b=4, c=3.828427124746191)
 
 produces.
 
