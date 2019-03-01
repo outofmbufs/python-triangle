@@ -79,14 +79,20 @@ class Triangle:
     #
     # Parses kwargs, collating them into angles and sides (returned)
     # and optionally sets them as attributes if given a target object
+    # Raises ValueError for various sanity check errors (sides < 0, etc)
     #
     @classmethod
     def __kwargshelper(cls, _targetobject, kwargs):
-        """Return two (side names, angle names). Optionally set attrs."""
+        """Return 2 lists: (side names, angle names). Optionally set attrs."""
         sv = []
         av = []
         for k, v in kwargs.items():
+            # negative/zero is illegal for both angles and sides
+            if v <= 0:
+                raise ValueError("'{}' (={}) must be > 0".format(k, v))
             if k in cls.angle_names:
+                if v >= math.pi:
+                    raise ValueError("angle '{}={}' >= π".format(k, v))
                 av.append(k)
             elif k in cls.side_names:
                 sv.append(k)
@@ -136,7 +142,6 @@ class Triangle:
 
         # Law of Sines a/sin(alpha) = b/sin(beta) = c/sin(gamma)
         alpha_sin = math.sin(alpha)
-
         try:
             beta = math.asin((alpha_sin * b) / a)
         except ValueError:
@@ -322,6 +327,7 @@ class Triangle:
                        sorted(self.threeangles()),
                        sorted(t.threeangles())))
 
+
 if __name__ == '__main__':
     def triangle_tests():
 
@@ -353,11 +359,13 @@ if __name__ == '__main__':
             if not math.isclose(tx.area(), t345.area(), rel_tol=0.000001):
                 raise ValueError(tx, tx.area())
 
-        # some that should fail, all w/value error
+        # these should fail, all w/value error
         vxxx = [{'a': 3, 'b': 4, 'c': 555},              # inequality
                 {'a': 3, 'alpha': t345.alpha, 'b': 4},   # ambiguous
                 {'a': 3},                                # underspecified
                 {'a': 3, 'b': 4, 'c': 5, 'alpha': 1},    # overspecified
+                {'a': 0, 'b': 4, 'c': 5},                # <= 0
+                {'a': 3, 'beta': 4, 'c': 5},             # beta too big
                 ]
         for v in vxxx:
             try:
