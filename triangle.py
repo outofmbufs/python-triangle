@@ -145,10 +145,14 @@ class Triangle:
         try:
             beta = math.asin((alpha_sin * b) / a)
         except ValueError:
-            raise ValueError("no solution possible")
+            beta_name = cls.opposing_name(b_name)
+            raise ValueError("no angle solution for {}".format(beta_name))
 
         # third angle is whatever is left
         gamma = math.pi - (alpha + beta)
+        if gamma <= 0:
+            gamma_name = cls.opposing_name(c_name)
+            raise ValueError("no angle solution for {}".format(gamma_name))
 
         # third side from law of Sines
         c = (math.sin(gamma) * a) / alpha_sin
