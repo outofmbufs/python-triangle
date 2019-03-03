@@ -63,6 +63,8 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`area()`: Return area of `t`.
 
+* t.`altitude(basename)`: Return altitude (height) relative to the named base.
+
 * Triangle.`opposing_name(name)`: Given any attribute name return the name of the attribute opposing it. For example, opposing('a') --> 'alpha'; opposing('alpha') --> 'a'.
 
 * t.`opposing(name)`: Given any attribute name return the VALUE of the attribute opposing it. For example, t.opposing('a') will return t.alpha.

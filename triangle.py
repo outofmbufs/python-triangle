@@ -57,6 +57,12 @@ class Triangle:
     #
 
     def __init__(self, **kwargs):
+        """Create a Triangle given three params (SSS/SSA/SAS/AAS/ASA).
+
+        Examples:
+           t = Triangle(a=3, b=4, c=5)
+           t = Triangle(a=8, alpha=math.pi/3, beta=math.pi/3)
+        """
 
         # sv: NAMES of sides given, av: NAMES of angles given
         sv, av = self.__kwargshelper(self, kwargs)
@@ -72,9 +78,9 @@ class Triangle:
         # all valid forms have exactly three elements in aggregate
         total = len(sv) + len(av)
         if total > 3:
-            raise ValueError("{} is overspecified".format(self))
+            raise ValueError(f"{self} is overspecified")
         elif total < 3:
-            raise ValueError("{} is underspecified".format(self))
+            raise ValueError(f"{self} is underspecified")
 
         # dispatch according to # of angles ... THIS IS MAYBE TOO CUTE???
         (self._sss, self._ssa_sas, self._aas_asa)[len(av)](sv, av, kwargs)
@@ -92,17 +98,15 @@ class Triangle:
         for k, v in kwargs.items():
             # negative/zero is illegal for both angles and sides
             if v <= 0:
-                raise ValueError("'{}' (={}) must be > 0".format(k, v))
+                raise ValueError(f"{k!r} (={v}) must be > 0")
             if k in cls.angle_names:
                 if v >= math.pi:
-                    raise ValueError("angle '{}={}' >= π".format(k, v))
+                    raise ValueError(f"angle {k!r} (={v}) >= π")
                 av.append(k)
             elif k in cls.side_names:
                 sv.append(k)
             else:
-                raise TypeError(
-                    "{}() got unexpected keyword arg '{}'".format(
-                        cls.__name__, k))
+                raise TypeError(f"{cls} got unexpected keyword arg {k!r}")
             if _targetobject:
                 setattr(_targetobject, k, v)
 
@@ -111,9 +115,9 @@ class Triangle:
     def __repr__(self):
         # Whatever three attributes were provided to __init__ are the repr
         # (but, of course, with whatever their current values are).
-        s = "{}(".format(self.__class__.__name__)
+        s = f"{self.__class__.__name__}("
         for attr, origv in self.__origparams:
-            s += "{}={}, ".format(attr, getattr(self, attr))
+            s += f"{attr}={getattr(self, attr)}, "
 
         return s.rstrip(", ") + ")"
 
@@ -190,7 +194,7 @@ class Triangle:
             # SSA
             d1, d2 = self.ssa_to_sss(**kwargs)
             if d2 is not None:
-                raise ValueError("{} is ambiguous".format(self))
+                raise ValueError(f"{self} is ambiguous")
 
             for k, v in d1.items():
                 setattr(self, k, v)
@@ -212,7 +216,7 @@ class Triangle:
             else:
                 gamma_name = a
         if gamma <= 0:
-            raise ValueError("{}: no solution for third angle".format(self))
+            raise ValueError(f"{self}: no solution for third angle")
 
         setattr(self, gamma_name, gamma)
 
@@ -228,7 +232,7 @@ class Triangle:
         """compute three angles given three sides."""
         a, b, c = self.__multiget(*self.side_names)
         if a + b <= c or a + c <= b or b + c <= a:
-            raise ValueError("{} fails triangle inequality".format(self))
+            raise ValueError(f"{self} fails triangle inequality tests")
         self._compute_missing_angles()
 
     def _compute_missing_angles(self):
@@ -278,7 +282,7 @@ class Triangle:
         opp = self.opposing_name(name)
         if opp is not None:
             return getattr(self, opp)
-        raise ValueError("{} not found in {}".format(name, self))
+        raise ValueError(f"{name!r} not found in {self}")
 
     def threesides(self):
         """a, b, c = t.threesides()"""
@@ -323,6 +327,13 @@ class Triangle:
 
         return math.sqrt(s * (s - a) * (s - b) * (s - c))
 
+    def altitude(self, basename):
+        """Return the geometric 'altitude' (height) from the given base."""
+
+        if basename not in self.side_names:
+            raise ValueError(f"{basename} is not a side name in {self}")
+        return (2 * self.area()) / getattr(self, basename)
+
     def similar(self, t):
         """Return True if triangle t is geometrically similar to this one.
 
@@ -341,9 +352,10 @@ class Triangle:
     def scale(self, factor):
         """Scale a triangle by the given factor."""
         if factor <= 0:
-            raise ValueError("{} illegal scale factor {}".format(self, factor))
+            raise ValueError(f"{self} illegal scale factor {factor}")
         for n in self.side_names:
             setattr(self, n, getattr(self, n) * factor)
+
 
 if __name__ == '__main__':
     def triangle_tests():
@@ -370,7 +382,7 @@ if __name__ == '__main__':
                     raise ValueError(v)
             # this is redundant if above passed, but check "similar" anyway
             if not t345.similar(tx):
-                raise ValueError("similarity failed {}".format(tx))
+                raise ValueError(f"similarity failed {tx}")
 
             # tolerance is generous but this is "just a check"
             if not math.isclose(tx.area(), t345.area(), rel_tol=0.000001):
