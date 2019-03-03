@@ -31,7 +31,7 @@ When specifying a `Triangle` in `SSS` form, all three sides must obey the *Trian
     a + c > b
     b + c > a
 
-When specifying in `SSA` form, some combinations of values may have two triangle solutions. A `ValueError` exception is raised in this case; applications must convert this form into a different, unambiguous, specification (and choose one of the two solutions to do so). A classmethod, `ssa_to_sss`, is available for this purpose (see description).
+When specifying in `SSA` form, some combinations of values may have two triangle solutions. A `ValueError` exception is raised in this case; applications must convert this form into a different, unambiguous, specification (and choose one of the two solutions to do so). A classmethod, `sss_solutions`, is available for this purpose (see description).
 
 As an example of an ambiguous case, note these two triangles:
 
@@ -42,7 +42,7 @@ both have `alpha` of 45 degrees; therefore this raises ValueError:
 
     t = Triangle(a=3, b=4, alpha=math.pi/4)
 
-as there is no way to know which solution is intended. Use `ssa_to_sss` and select the desired solution from the two it will return.
+as there is no way to know which solution is intended. Use `sss_solutions` and select the desired solution from the two it will return.
 
 ## REPR
 
@@ -81,15 +81,15 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle.
 
-* Triangle.`ssa_to_sss(**kwargs)`: Returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call.
+* Triangle.`sss_solutions(**kwargs)`: Given three parameters (e.g., two sides and one angle), returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call. This is primarily useful in ambiguous SSA cases where there are two possible solutions (as otherwise the parameters could also just be given to Triangle() directly).
 
 * t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation reflection. Uses isclose()
 
-### More about `ssa_to_sss`
+### More about `sss_solutions`
 
-An example of how to use `ssa_to_sss`:
+An example of how to use `sss_solutions`:
 
-    solution_1, solution_2 = Triangle.ssa_to_sss(a=3, b=4, alpha=math.pi/4)
+    solution_1, solution_2 = Triangle.sss_solutions(a=3, b=4, alpha=math.pi/4)
     t = Triangle(**solution_1)
 
 produces the same `Triangle` that:
