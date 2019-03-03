@@ -52,7 +52,7 @@ class Triangle:
     # NOTES:
     # * SSS:   The three sides must satisfy the triangle inequality
     # * SSA:   Raises exception if there are two solutions; use
-    #          (classmethod) ssa_to_sss to get both solution forms.
+    #          (classmethod) sss_solutions to get both solution forms.
     # * AAAS:  Redundant; not accepted. Instead: omit one A --> AAS/ASA
     #
 
@@ -126,14 +126,31 @@ class Triangle:
         return [getattr(self, a) for a in attrs]
 
     @classmethod
-    def ssa_to_sss(cls, **kwargs):
-        """Return two SSS dictionaries, 1 dict per ssa solution."""
+    def sss_solutions(cls, **kwargs):
+        """Return two SSS dicts, (1 per solution). 2nd dict might be None.
+
+        Primarily useful for ambiguous SSA cases, to get both solutions, e.g.:
+          sss_1, sss_2 = Triangle.sss_solutions(a=3, b=4, alpha=math.pi/4)
+          t = Triangle(**sss_1)
+        """
 
         sv, av = cls.__kwargshelper(None, kwargs)
-        if len(sv) != 2 or len(av) != 1:
-            raise ValueError("SSA requires exactly 2 sides and 1 angle")
 
-        # let:
+        # If this is NOT the (potentially) ambiguous SSA case, just
+        # make a Triangle and report the sole SSS solution.
+        # NOTE (FRAGILE!) --
+        #    Triangle() calls this method for the SSA case so this
+        #    code has to carefully weed out that infinite recursion
+
+        # note: don't have to test len(av) > 0 before opposing_name because
+        #       len(av) != 1 would already short-circuit that case
+        if len(sv) != 2 or len(av) != 1 or cls.opposing_name(av[0]) not in sv:
+            t = cls(**kwargs)
+            return {n: getattr(t, n) for n in t.side_names}, None
+
+        # SSA case falls through to here.
+        # (Note that SAS was weeded out in the opposing_name test)
+        # Let:
         #   alpha be the given angle
         #   a be the opposing side (it can be either side given)
         #   b be the other side (the one that isn't "a")
@@ -192,7 +209,7 @@ class Triangle:
         oppside_name = self.opposing_name(av[0])
         if oppside_name in sv:
             # SSA
-            d1, d2 = self.ssa_to_sss(**kwargs)
+            d1, d2 = self.sss_solutions(**kwargs)
             if d2 is not None:
                 raise ValueError(f"{self} is ambiguous")
 
@@ -405,6 +422,16 @@ if __name__ == '__main__':
                 raise TypeError(v)
             except ValueError:
                 pass
+
+        # Should generate two solutions
+        d1, d2 = Triangle.sss_solutions(a=3, b=4, alpha=t345.alpha)
+
+        if d1 is None or d2 is None:
+            raise ValueError("Did not get two solutions from sss_solutions")
+
+        # one or the other should have come up with t345.
+        if not (t345.similar(Triangle(**d1)) or t345.similar(Triangle(**d2))):
+            raise ValueError("Did not get t345 from sss_solutions")
 
         return True
 
