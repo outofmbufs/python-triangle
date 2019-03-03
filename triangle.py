@@ -375,39 +375,51 @@ class Triangle:
 
 
 if __name__ == '__main__':
-    def triangle_tests():
+    import unittest
 
-        t345 = Triangle(a=3, b=4, c=5)
-        abg345 = (('alpha', 0.6435011087932843),
-                  ('beta', 0.9272952180016123),
-                  ('gamma', math.pi/2))
+    class TriangleTestMethods(unittest.TestCase):
+        @classmethod
+        def setUpClass(cls):
+            cls.t345 = Triangle(a=3, b=4, c=5)
+            cls.abg345 = (('alpha', 0.6435011087932843),
+                          ('beta', 0.9272952180016123),
+                          ('gamma', math.pi/2))
+            for a, v in cls.abg345:
+                if not cls.fuzzy_equal(getattr(cls.t345, a), v):
+                    raise ValueError("cannot establish baseline angles")
 
-        for a, aval in abg345:
-            if not math.isclose(getattr(t345, a), aval):
-                raise ValueError("cannot establish measurement standards")
-        test345s = [{'a': 3, 'b': 4, 'c': 5},                          # SSS
-                    {'a': 3, 'b': 4, 'gamma': math.pi/2},              # SAS
-                    {'a': 3, 'beta': t345.beta, 'b': 4},               # SSA
-                    {'alpha': t345.alpha, 'beta': t345.beta, 'c': 5},  # ASA
-                    {'alpha': t345.alpha, 'beta': t345.beta, 'a': 3},  # AAS
-                    ]
+        @staticmethod
+        def fuzzy_equal(a, b):
+            return abs(a - b) < .000001
 
-        for v in test345s:
-            tx = Triangle(**v)
-            for a in tx.side_names + tx.angle_names:
-                if not math.isclose(getattr(tx, a), getattr(t345, a)):
-                    raise ValueError(v)
-            # this is redundant if above passed, but check "similar" anyway
-            if not t345.similar(tx):
-                raise ValueError(f"similarity failed {tx}")
+        def test_triangle_solutions(self):
+            t345 = self.t345
+            alpha, beta, gamma = t345.threeangles()
+            test345s = [
+                {'a': 3, 'b': 4, 'c': 5},                   # SSS
+                {'a': 3, 'b': 4, 'gamma': math.pi/2},       # SAS
+                {'a': 3, 'b': 4, 'gamma': gamma},           # SAS (same)
+                {'a': 3, 'beta': beta, 'b': 4},             # SSA
+                {'alpha': alpha, 'beta': beta, 'c': 5},     # ASA
+                {'alpha': alpha, 'beta': beta, 'a': 3},     # AAS
+                ]
 
-            # tolerance is generous but this is "just a check"
-            if not math.isclose(tx.area(), t345.area(), rel_tol=0.000001):
-                raise ValueError(tx, tx.area())
+            for v in test345s:
+                tx = Triangle(**v)
+                for a in tx.side_names + tx.angle_names:
+                    self.assertTrue(
+                        self.fuzzy_equal(getattr(tx, a), getattr(t345, a)))
 
-        # these should fail, all w/value error
-        vxxx = [{'a': 3, 'b': 4, 'c': 555},              # inequality
-                {'a': 3, 'alpha': t345.alpha, 'b': 4},   # ambiguous
+                self.assertTrue(t345.similar(tx))
+                self.assertTrue(self.fuzzy_equal(tx.area(), t345.area()))
+
+        def test_nonsolutions(self):
+            alpha, beta, gamma = self.t345.threeangles()
+
+            # these should fail, all w/value error
+            vxxx = [
+                {'a': 3, 'b': 4, 'c': 555},              # inequality
+                {'a': 3, 'alpha': alpha, 'b': 4},        # ambiguous
                 {'a': 3},                                # underspecified
                 {'a': 3, 'b': 4, 'c': 5, 'alpha': 1},    # overspecified
                 {'a': 0, 'b': 4, 'c': 5},                # <= 0
@@ -416,23 +428,18 @@ if __name__ == '__main__':
                                                          # angles too big
                 {'a': 4, 'beta': 0.75*math.pi, 'gamma': 0.75*math.pi},
                 ]
-        for v in vxxx:
-            try:
-                tx = Triangle(**v)
-                raise TypeError(v)
-            except ValueError:
-                pass
+            for v in vxxx:
+                self.assertRaises(ValueError, Triangle, **v)
 
-        # Should generate two solutions
-        d1, d2 = Triangle.sss_solutions(a=3, b=4, alpha=t345.alpha)
+        def test_ssssolutions(self):
+            # Should generate two solutions
+            d1, d2 = Triangle.sss_solutions(a=3, b=4, alpha=self.t345.alpha)
 
-        if d1 is None or d2 is None:
-            raise ValueError("Did not get two solutions from sss_solutions")
+            self.assertIsNotNone(d1)
+            self.assertIsNotNone(d2)
 
-        # one or the other should have come up with t345.
-        if not (t345.similar(Triangle(**d1)) or t345.similar(Triangle(**d2))):
-            raise ValueError("Did not get t345 from sss_solutions")
+            # one or the other should have come up with t345.
+            self.assertTrue(self.t345.similar(Triangle(**d1)) or
+                            self.t345.similar(Triangle(**d2)))
 
-        return True
-
-    triangle_tests()
+    unittest.main()
