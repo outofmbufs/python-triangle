@@ -278,21 +278,24 @@ class Triangle:
             return None
 
     @classmethod
-    def other_names(cls, _name1, *names):
+    def other_names(cls, _arg1, *more):
         """Given 1 or more side names or angle names, return the others."""
 
-        # this ONLY returns side names for sides, and angles for angles.
-        for x in (cls.side_names, cls.angle_names):
-            if _name1 in x:
-                for n in names:
-                    if n not in x:
-                        raise ValueError("mismatching name types given")
-                candidates = x
-                break
-        else:
-            raise ValueError("unknown name given")
+        # The explicit "_arg1" in def forces python to enforce "at least
+        # one argument required" ... then this puts all the args back
+        # into one tuple for convenience
+        names = (_arg1, *more)
 
-        return [x for x in candidates if x != _name1 and x not in names]
+        if names[0] in cls.side_names:
+            candidates = cls.side_names
+        else:
+            candidates = cls.angle_names
+
+        for n in names:
+            if n not in candidates:
+                raise ValueError(f"mismatching or unknown name '{n}'")
+
+        return [x for x in candidates if x not in names]
 
     def opposing(self, name):
         """Return opposing angle/side VALUE for given side/angle NAME."""
@@ -441,5 +444,32 @@ if __name__ == '__main__':
             # one or the other should have come up with t345.
             self.assertTrue(self.t345.similar(Triangle(**d1)) or
                             self.t345.similar(Triangle(**d2)))
+
+        def test_altitude(self):
+            # compute the altitudes relative to all three sides of
+            # a precomputed result in various permutations. Overkill.
+            tv = (((30, 40, 50), (40, 30, 24)),
+                  ((40, 30, 50), (30, 40, 24)),
+                  ((50, 30, 40), (24, 40, 30)),
+                  ((50, 40, 30), (24, 30, 40)))
+            for sv, hv in tv:
+                t = Triangle(**dict(zip(Triangle.side_names, sv)))
+                for sn, av in zip(Triangle.side_names, hv):
+                    self.assertEqual(t.altitude(sn), av)
+
+        def test_othernames(self):
+            tv = ((('a',), ('b', 'c')),
+                  (('a', 'b'), ('c')),
+                  (('a', 'alpha'), None),
+                  (('alpha', 'gamma', 'beta'), ()),
+                  (('c',), ('a', 'b')))
+            for names, expected in tv:
+                if expected is None:
+                    self.assertRaises(ValueError, Triangle.other_names, *names)
+                else:
+                    r = sorted(list(Triangle.other_names(*names)))
+                    x = sorted(list(expected))
+                    self.assertEqual(r, x)
+
 
     unittest.main()

@@ -83,7 +83,7 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * Triangle.`sss_solutions(**kwargs)`: Given three parameters (e.g., two sides and one angle), returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call. This is primarily useful in ambiguous SSA cases where there are two possible solutions (as otherwise the parameters could also just be given to Triangle() directly).
 
-* t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation reflection. Uses isclose()
+* t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation/reflection. Uses isclose()
 
 ### More about `sss_solutions`
 
@@ -113,7 +113,7 @@ Three class attributes can be overridden by subclasses if desired for customizin
 
 EXAMPLES:
 
-This subclass provides Triangles where the angles have been renamed to be A1, A2, and A3:
+This subclass renames the angles as A1, A2, and A3:
 
     class TriangleX(Triangle):
         angle_names = ('A1', 'A2', 'A3')
@@ -123,11 +123,11 @@ This subclass provides Triangles where the angles have been renamed to be A1, A2
                                a=3)
 
 
-This subclass requires that all comparisons be EXACT (this may yield surprising results for some methods, due to floating point inexactness):
+This subclass changes the comparison method to be EXACT. Note that this could have surprising results for some methods (e.g., the isoceles and equilateral predicates), due to floating point inexactness:
 
     class TriangleQ(Triangle):
         @staticmethod
         def isclose(a, b):
-	    return a == b
+            return a == b
 
 
