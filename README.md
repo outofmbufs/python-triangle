@@ -44,6 +44,14 @@ both have `alpha` of 45 degrees; therefore this raises ValueError:
 
 as there is no way to know which solution is intended. Use `sss_solutions` and select the desired solution from the two it will return.
 
+As a convenience, a classmethod `coordinates_to_sss` converts an iterable of three vertex coordinates (each coordinate an (x, y) tuple) into a dict of three side lengths using `d = sqrt(dx^2 + dy^2)`. So, for example:
+
+    coords = ((45, 42), (42, 42), (45, 46))
+    t = Triangle(**Triangle.coordinates_to_sss(coords))
+
+is yet another way to make a 3/4/5 triangle.
+
+
 ## REPR
 
 The `__repr__` of a `Triangle` has this form:
@@ -82,6 +90,8 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 * t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle.
 
 * Triangle.`sss_solutions(**kwargs)`: Given three parameters (e.g., two sides and one angle), returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call. This is primarily useful in ambiguous SSA cases where there are two possible solutions (as otherwise the parameters could also just be given to Triangle() directly).
+
+* Triangle.`coordinates_to_sss(coordinates)`: Given an iterable of length three, each element being itself an (x, y) tuple, return a dictionary of side lengths suitable for use to create a Triangle.
 
 * t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation/reflection. Uses isclose()
 

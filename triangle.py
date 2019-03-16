@@ -1,3 +1,5 @@
+from collections import ChainMap
+from itertools import combinations
 import math
 
 
@@ -12,12 +14,16 @@ class Triangle:
     side_names = ('a', 'b', 'c')
     angle_names = ('alpha', 'beta', 'gamma')
     #
-    # ... define that; the code never refers to attribute names directly.
-    # Accordingly, they can be overridden in a subclass though that was
-    # a secondary consideration. Using this level of indirection helped
-    # avoid multiple permutation-specific copies of code in the solvers.
-    # For example, SSA requires two sides, but should not require
-    # it be specifically given sides "a" and "b".
+    # ... define those names. The solver algorithm uses a level of indirection
+    # when accessing attributes, to allow full generality of specifications.
+    # For example, an SSA specification could be
+    #                       side a, side b, angle beta
+    # but also could be:    side b, side c, angle gamma
+    # Consequently, the solver doesn't access attributes directly by name.
+    # Instead it accesses them indirectly/algorithmically, to allow full
+    # flexibility for SSA/SAS/AAS/ASA specifications. All other methods also
+    # use that indirection. This means if a subclass wants to it can redefine
+    # the attribute names themselves by overriding the above tuples.
     #
     # The order in these tuples must correspond, so that:
     #
@@ -31,7 +37,7 @@ class Triangle:
     # Specify a triangle, giving sides and angles via keyword args.
     # The number of sides and angles determines how the solver will
     # determine the full triangle, according to:
-    #    SSS  -- all three sides
+    #    SSS  -- all three sides, by size
     #    SSA  -- two sides and a non-included angle
     #    SAS  -- two sides and the included angle
     #    AAS  -- two angles and the non-included side
@@ -44,8 +50,8 @@ class Triangle:
     #   t1 = Triangle(a=3, b=4, c=5)
     #   t2 = Triangle(alpha=0.6435011087932843, gamma=math.pi/2, a=3)
     #
-    # both specify a classic 3/4/5 pythagorean triangle, though it is likely
-    # that t1.c != t2.c (they will be close but might not be exactly equal).
+    # both specify a classic 3/4/5 pythagorean triangle, though it is unlikely
+    # that t1.c == t2.c (they will be close but might not be exactly equal).
     # Note that the __repr__ code chooses to use a representation mimicing
     # the parameters supplied at __init__ for this reason.
     #
@@ -64,208 +70,204 @@ class Triangle:
            t = Triangle(a=8, alpha=math.pi/3, beta=math.pi/3)
         """
 
-        # sv: NAMES of sides given, av: NAMES of angles given
-        sv, av = self.__kwargshelper(self, kwargs)
+        # The __repr__ is the original parameters, in a canonical order,
+        # so record which ones are the originals...
+        ordered = self.side_names + self.angle_names
+        self.__origparams = [n for n in ordered if n in kwargs]
 
-        # remember the original parameters, mostly for __repr__
-        # NOTE that this puts them into a canonical order (deliberately).
-        # Therefore it is a list of tuples rather than a dict, although
-        # the newest python dict semantics are now order-preserving as well.
-        self.__origparams = [
-            (n, kwargs[n])
-            for n in self.side_names + self.angle_names if n in sv + av]
+        # Use the solver turn everything into SSS (possibly two solutions)
+        sss, should_be_none = self.sss_solutions(**kwargs)
+        if should_be_none is not None:
+            raise ValueError(f"{kwargs} is ambiguous")
 
-        # all valid forms have exactly three elements in aggregate
-        total = len(sv) + len(av)
-        if total > 3:
-            raise ValueError(f"{self} is overspecified")
-        elif total < 3:
-            raise ValueError(f"{self} is underspecified")
-
-        # dispatch according to # of angles ... THIS IS MAYBE TOO CUTE???
-        (self._sss, self._ssa_sas, self._aas_asa)[len(av)](sv, av, kwargs)
+        # set all the attrs, use kwargs in favor of computed sides or angles
+        for k, v in ChainMap(kwargs, sss, self.compute_angles(sss)).items():
+            setattr(self, k, v)
 
     #
-    # Parses kwargs, collating them into angles and sides (returned)
-    # and optionally sets them as attributes if given a target object
+    # Checks legality of kwargs, returns a copy of them
     # Raises ValueError for various sanity check errors (sides < 0, etc)
     #
     @classmethod
-    def __kwargshelper(cls, _targetobject, kwargs):
-        """Return 2 lists: (side names, angle names). Optionally set attrs."""
-        sv = []
-        av = []
+    def __kwargschecker(cls, kwargs):
+        pm = {}
         for k, v in kwargs.items():
-            # negative/zero is illegal for both angles and sides
             if v <= 0:
                 raise ValueError(f"{k!r} (={v}) must be > 0")
             if k in cls.angle_names:
                 if v >= math.pi:
                     raise ValueError(f"angle {k!r} (={v}) >= π")
-                av.append(k)
-            elif k in cls.side_names:
-                sv.append(k)
-            else:
+            elif k not in cls.side_names:
                 raise TypeError(f"{cls} got unexpected keyword arg {k!r}")
-            if _targetobject:
-                setattr(_targetobject, k, v)
+            pm[k] = v
 
-        return sv, av
+        return pm
 
     def __repr__(self):
-        # Whatever three attributes were provided to __init__ are the repr
-        # (but, of course, with whatever their current values are).
         s = f"{self.__class__.__name__}("
-        for attr, origv in self.__origparams:
+        for attr in self.__origparams:
             s += f"{attr}={getattr(self, attr)}, "
 
         return s.rstrip(", ") + ")"
 
-    def __multiget(self, *attrs):
-        """Return a list of the values of given attributes."""
-        return [getattr(self, a) for a in attrs]
-
     @classmethod
     def sss_solutions(cls, **kwargs):
-        """Return two SSS dicts, (1 per solution). 2nd dict might be None.
+        """Return two dicts, (1 per solution), 2nd of which might be None.
 
-        Primarily useful for ambiguous SSA cases, to get both solutions, e.g.:
+        This is the heart of the triangle solver and is used by __init__().
+        It can also be useful to invoke directly for ambiguous SSA cases,
+        to get both solutions, e.g.:
           sss_1, sss_2 = Triangle.sss_solutions(a=3, b=4, alpha=math.pi/4)
           t = Triangle(**sss_1)
         """
 
-        sv, av = cls.__kwargshelper(None, kwargs)
+        pm = cls.__kwargschecker(kwargs)
+        sv = [k for k in cls.side_names if k in pm]
+        av = [k for k in cls.angle_names if k in pm]
 
-        # If this is NOT the (potentially) ambiguous SSA case, just
-        # make a Triangle and report the sole SSS solution.
-        # NOTE (FRAGILE!) --
-        #    Triangle() calls this method for the SSA case so this
-        #    code has to carefully weed out that infinite recursion
+        # all valid forms have exactly three elements in aggregate
+        if len(pm) != 3:
+            raise ValueError(f"{pm} over/under specified")
 
-        # note: don't have to test len(av) > 0 before opposing_name because
-        #       len(av) != 1 would already short-circuit that case
-        if len(sv) != 2 or len(av) != 1 or cls.opposing_name(av[0]) not in sv:
-            t = cls(**kwargs)
-            return {n: getattr(t, n) for n in t.side_names}, None
+        # 0, 1, 2, or 3 sides given:
+        if len(sv) == 1:
+            return cls.__aas_asa(sv, av, pm)
+        elif len(sv) == 2:
+            return cls.__sas_ssa(sv, av, pm)
+        elif len(sv) == 3:
+            # SSS case; solution is as given but verify triangle rules
+            a, b, c = [pm[s] for s in cls.side_names]
+            if a + b <= c or a + c <= b or b + c <= a:
+                raise ValueError(f"{pm} fails triangle inequality tests")
+            return pm, None
 
-        # SSA case falls through to here.
-        # (Note that SAS was weeded out in the opposing_name test)
-        # Let:
-        #   alpha be the given angle
-        #   a be the opposing side (it can be either side given)
-        #   b be the other side (the one that isn't "a")
+        # reaching here implies 0 sides given
+        raise ValueError(f"{pm} must specify at least one side")
 
-        alpha = kwargs[av[0]]
-        a_name = cls.opposing_name(av[0])
-        a = kwargs[a_name]
-        b_name = sv[1] if a_name == sv[0] else sv[0]
-        b = kwargs[b_name]
+    @classmethod
+    def compute_angles(cls, sss):
+        """Return a complete (angles and sides) triangle dict, given SSS."""
+        ax = sss.copy()
+        for angle_name in cls.angle_names:
+            oppsidename = cls.opposing_name(angle_name)
+            bname, cname = cls.other_names(oppsidename)
+            a = sss[oppsidename]
+            b = sss[bname]
+            c = sss[cname]
+            angle = math.acos(((b*b) + (c*c) - (a*a)) / (2*b*c))
+            ax[angle_name] = angle
+        return ax
 
-        # the c name is whichever side name that wasn't given
-        c_name = cls.other_names(a_name, b_name)[0]
+    @classmethod
+    def coordinates_to_sss(cls, coordinates):
+        """Return SSS dict given ((x0, y0), (x1, y1), (x2, y2))"""
+        sss = {}
+        for twopts, k in zip(combinations(coordinates, 2), cls.side_names):
+            v0, v1 = twopts
+            dx = v1[0]-v0[0]
+            dy = v1[1]-v0[1]
+            sss[k] = math.sqrt((dx * dx) + (dy * dy))
+        return sss
 
-        # Law of Sines a/sin(alpha) = b/sin(beta) = c/sin(gamma)
-        alpha_sin = math.sin(alpha)
-        try:
-            beta = math.asin((alpha_sin * b) / a)
-        except ValueError:
-            raise ValueError("no angle solution for {}".format(
-                    cls.opposing_name(b_name)))
+    @classmethod
+    def __sas_ssa(cls, sv, av, pm):
+        """Return two SSS dicts given an SSA or SAS set of parameters.
 
-        # third angle is whatever is left
-        gamma = math.pi - (alpha + beta)
-        if gamma <= 0:
-            raise ValueError("no angle solution for {}".format(
-                    cls.opposing_name(c_name)))
+        The second dict will be None unless there are two solutions.
+        """
+        oppside_name = cls.opposing_name(av[0])
+        if oppside_name in sv:
+            # SSA
+            # Let:
+            #   c be the side that WASN'T given
+            #   alpha be the given angle
+            #   a be the opposing side (it can be either side given)
+            #   b be the other side (the one that isn't "a")
+            c_name = cls.other_names(*sv)[0]
+            alpha = pm[av[0]]
+            a_name = cls.opposing_name(av[0])
+            a = pm[a_name]
+            b_name = cls.other_names(a_name, c_name)[0]
+            b = pm[b_name]
 
-        # third side from law of Sines
-        c = (math.sin(gamma) * a) / alpha_sin
+            # Law of Sines a/sin(alpha) = b/sin(beta) = c/sin(gamma)
+            alpha_sin = math.sin(alpha)
+            try:
+                beta = math.asin((alpha_sin * b) / a)
+            except ValueError:
+                raise ValueError("no angle solution for {}".format(
+                        cls.opposing_name(b_name)))
 
-        d1 = {a_name: a, b_name: b, c_name: c}
-
-        # check for ambiguous case regarding beta:
-        #   pi - beta would have the same sin and MIGHT be a solution.
-        #   Can rule that out if
-        #       alpha + (pi - beta) >= pi
-        #   as there would be nothing left for gamma
-        #
-        # Said another way, another triangle is possible if
-        #       alpha + (pi - beta) < pi
-        # Simplifying by subtracting pi from both sides:
-        #       alpha - beta < 0 is the ambiguous case
-        # or    beta > alpha
-        if beta > alpha:
-            # compute the alternate solution
-            beta = math.pi - beta
+            # third angle is whatever is left
             gamma = math.pi - (alpha + beta)
+            if gamma <= 0:
+                raise ValueError("no angle solution for {}".format(
+                        cls.opposing_name(c_name)))
+
+            # third side from law of Sines
             c = (math.sin(gamma) * a) / alpha_sin
-            d2 = {a_name: a, b_name: b, c_name: c}
+
+            d1 = {a_name: a, b_name: b, c_name: c}
+
+            # check for ambiguous case regarding beta:
+            #   pi - beta would have the same sin and MIGHT be a solution.
+            #   Can rule that out if
+            #       alpha + (pi - beta) >= pi
+            #   as there would be nothing left for gamma
+            #
+            # Said another way, another triangle is possible if
+            #       alpha + (pi - beta) < pi
+            # Simplifying by subtracting pi from both sides:
+            #       alpha - beta < 0 is the ambiguous case
+            # or    beta > alpha
+            if beta > alpha:
+                # compute the alternate solution
+                beta = math.pi - beta
+                gamma = math.pi - (alpha + beta)
+                c = (math.sin(gamma) * a) / alpha_sin
+                d2 = {a_name: a, b_name: b, c_name: c}
+            else:
+                d2 = None
         else:
+            a = pm[sv[0]]
+            c = pm[sv[1]]
+            beta = pm[av[0]]
+            b = math.sqrt((a*a) + (c*c) - (2 * a * c * math.cos(beta)))
+            pm[cls.opposing_name(av[0])] = b
+            d1 = {s: pm[s] for s in cls.side_names}
             d2 = None
 
         return d1, d2
 
-    def _ssa_sas(self, sv, av, kwargs):
-        oppside_name = self.opposing_name(av[0])
-        if oppside_name in sv:
-            # SSA
-            d1, d2 = self.sss_solutions(**kwargs)
-            if d2 is not None:
-                raise ValueError(f"{self} is ambiguous")
+    @classmethod
+    def __aas_asa(cls, sv, av, pm):
+        """Return two SSS dicts given an AAS or ASA set of parameters.
 
-            for k, v in d1.items():
-                setattr(self, k, v)
-            self._compute_missing_angles()
-        else:
-            a, c, beta = self.__multiget(*sv, *av)
-            b = math.sqrt((a*a) + (c*c) - (2 * a * c * math.cos(beta)))
-            setattr(self, self.opposing_name(av[0]), b)
-            # now it reduces to SSS
-            self._sss(sv, av, kwargs)
+        The second dict will ALWAYS be None, but is returned to be
+        consistent with __sas_ssa and sss_solutions expectations.
+        """
 
-    def _aas_asa(self, sv, av, kwargs):
         # gamma name is whichever angle name that wasn't given
         # gamma, the third angle, is whatever is left after the other two
         gamma = math.pi
-        for a in self.angle_names:
-            if hasattr(self, a):
-                gamma -= getattr(self, a)
+        for a in cls.angle_names:
+            if a in pm:
+                gamma -= pm[a]
             else:
                 gamma_name = a
         if gamma <= 0:
-            raise ValueError(f"{self}: no solution for third angle")
+            raise ValueError(f"{pm}: no solution for third angle")
 
-        setattr(self, gamma_name, gamma)
+        pm[gamma_name] = gamma
 
         # now that all three angles are known... law of Sines
-        s0 = getattr(self, sv[0])
-        ratio = s0 / math.sin(getattr(self, self.opposing_name(sv[0])))
-        for s in self.side_names:
+        s0 = pm[sv[0]]
+        ratio = s0 / math.sin(pm[cls.opposing_name(sv[0])])
+        for s in cls.side_names:
             if s != sv[0]:
-                sx = math.sin(getattr(self, self.opposing_name(s))) * ratio
-                setattr(self, s, sx)
-
-    def _sss(self, sv, av, kwargs):
-        """compute three angles given three sides."""
-        a, b, c = self.__multiget(*self.side_names)
-        if a + b <= c or a + c <= b or b + c <= a:
-            raise ValueError(f"{self} fails triangle inequality tests")
-        self._compute_missing_angles()
-
-    def _compute_missing_angles(self):
-        """Computes any missing angles. All three sides must be present."""
-
-        snsn = self.side_names + self.side_names   # i.e., double the list
-        for angle_name in self.angle_names:
-            if not hasattr(self, angle_name):
-
-                # cleverly generates correct sides permutation by sliding
-                # a window of three accordingly through snsn list.
-                offset = self.angle_names.index(angle_name)
-                a, b, c = self.__multiget(*snsn[offset:offset+3])
-
-                angle = math.acos(((b*b) + (c*c) - (a*a)) / (2*b*c))
-                setattr(self, angle_name, angle)
+                sx = math.sin(pm[cls.opposing_name(s)]) * ratio
+                pm[s] = sx
+        return {s: pm[s] for s in cls.side_names}, None
 
     @classmethod
     def opposing_name(cls, name):
@@ -278,13 +280,13 @@ class Triangle:
             return None
 
     @classmethod
-    def other_names(cls, _arg1, *more):
+    def other_names(cls, _name, *more):
         """Given 1 or more side names or angle names, return the others."""
 
         # The explicit "_arg1" in def forces python to enforce "at least
         # one argument required" ... then this puts all the args back
         # into one tuple for convenience
-        names = (_arg1, *more)
+        names = (_name, *more)
 
         if names[0] in cls.side_names:
             candidates = cls.side_names
@@ -306,18 +308,24 @@ class Triangle:
 
     def threesides(self):
         """a, b, c = t.threesides()"""
-        return self.__multiget(*self.side_names)
+        return [getattr(self, s) for s in self.side_names]
 
     def threeangles(self):
         """alpha, beta, gamma = t.threeangles()"""
-        return self.__multiget(*self.angle_names)
+        return [getattr(self, a) for a in self.angle_names]
 
     def canonicaltriangle(self):
         """Return a new triangle with sides in size order low-to-high."""
         abc = self.threesides()
         abc.sort()
-        return Triangle(**{k: abc[self.side_names.index(k)]
-                           for k in self.side_names})
+        return Triangle(**{self.side_names[i]: abc[i] for i in range(3)})
+
+    def copy(self):
+        """Return new copy of a Triangle."""
+        t = Triangle(**{k: getattr(self, k) for k, x in self.__origparams})
+        if not t.similar(self):
+            raise ValueError(f"{self} has been inconsistently modified")
+        return t
 
     def equilateral(self):
         """Return TRUE if triangle is equilateral (uses isclose)."""
@@ -416,6 +424,13 @@ if __name__ == '__main__':
                 self.assertTrue(t345.similar(tx))
                 self.assertTrue(self.fuzzy_equal(tx.area(), t345.area()))
 
+        def test_similar(self):
+            self.assertTrue(self.t345.similar(Triangle(a=5, b=3, c=4)))
+            self.assertTrue(self.t345.similar(self.t345))
+            for factors in (0.1, 1.01, 2, 44, .00000001):
+                tx = 1
+            self.assertFalse(self.t345.similar(Triangle(a=5, b=5, c=4)))
+
         def test_nonsolutions(self):
             alpha, beta, gamma = self.t345.threeangles()
 
@@ -471,5 +486,16 @@ if __name__ == '__main__':
                     x = sorted(list(expected))
                     self.assertEqual(r, x)
 
+        def test_coordinates(self):
+            # various forms of a 3,4,5 triangle specified as coordinates
+            tv = (((0, 0), (3, 0), (3, 4)),
+                  ((100, 100), (103, 100), (103, 104)),
+                  ((100, 200), (103, 200), (103, 204)),
+                  ((100, -200), (103, -200), (103, -204)),
+                  ((-100, -200), (-103, -200), (-103, -204)),
+                  ((-200, -100), (-203, -100), (-203, -104)))
+            for coords in tv:
+                sss = Triangle.coordinates_to_sss(coords)
+                self.assertTrue(self.t345.similar(Triangle(**sss)))
 
     unittest.main()
