@@ -1,9 +1,32 @@
+# MIT License
+#
+# Copyright (c) 2019 Neil Webber
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from collections import ChainMap
 from itertools import combinations
 import math
 
 
 class Triangle:
+    """Class implementing geometric triangles."""
     #
     # By default...
     #   * The three side lengths of a triangle are attributes: a, b, c
@@ -37,10 +60,10 @@ class Triangle:
     # Specify a triangle, giving sides and angles via keyword args.
     # The number of sides and angles determines how the solver will
     # determine the full triangle, according to:
-    #    SSS  -- all three sides, by size
+    #    SSS  -- all three sides
     #    SSA  -- two sides and a non-included angle
     #    SAS  -- two sides and the included angle
-    #    AAS  -- two angles and the non-included side
+    #    AAS  -- two angles and a non-included side
     #    ASA  -- two angles and the included side
     #
     # Unspecified triangle attributes are calculated from the given values
@@ -283,7 +306,7 @@ class Triangle:
     def other_names(cls, _name, *more):
         """Given 1 or more side names or angle names, return the others."""
 
-        # The explicit "_arg1" in def forces python to enforce "at least
+        # The explicit "_name" in def forces python to enforce "at least
         # one argument required" ... then this puts all the args back
         # into one tuple for convenience
         names = (_name, *more)
@@ -322,9 +345,10 @@ class Triangle:
 
     def copy(self):
         """Return new copy of a Triangle."""
-        t = Triangle(**{k: getattr(self, k) for k, x in self.__origparams})
-        if not t.similar(self):
-            raise ValueError(f"{self} has been inconsistently modified")
+        t = Triangle(**{k: getattr(self, k) for k in self.__origparams})
+        # because there's no guarantee attrs haven't bashed inconsistently...
+        for k in self.side_names + self.angle_names:
+            setattr(t, k, getattr(self, k))
         return t
 
     def equilateral(self):
