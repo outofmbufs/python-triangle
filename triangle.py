@@ -215,6 +215,12 @@ class Triangle:
             #   alpha be the given angle
             #   a be the opposing side (it can be either side given)
             #   b be the other side (the one that isn't "a")
+            # NOTE: confusingly, these variable name choices have no relation
+            #       to the particular parameter/attributes being used/set.
+            #       Not merely because those names can be overridden, but
+            #       more importantly because any two sides could be a and b
+            #       in these calculations (and any angle could be alpha).
+            #       This is either obvious, or it's not. :)
             c_name = cls.other_names(*sv)[0]
             oc_name = cls.opposing_name(c_name)
             alpha = pm[av[0]]
