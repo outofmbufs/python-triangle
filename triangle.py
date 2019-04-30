@@ -69,14 +69,21 @@ class Triangle:
     # Unspecified triangle attributes are calculated from the given values
     # using float/trig operations. Accordingly, they are rarely *exact*.
     #
-    # For example:
-    #   t1 = Triangle(a=3, b=4, c=5)
-    #   t2 = Triangle(alpha=0.6435011087932843, gamma=math.pi/2, a=3)
+    # EXAMPLES:
     #
-    # both specify a classic 3/4/5 pythagorean triangle, though it is unlikely
-    # that t1.c == t2.c (they will be close but might not be exactly equal).
-    # Note that the __repr__ code chooses to use a representation mimicing
-    # the parameters supplied at __init__ for this reason.
+    #   # SSS example
+    #   t1 = Triangle(a=3, b=4, c=5)
+    #
+    #   # AAS example
+    #   t2 = Triangle(a=3, alpha=0.6435011087932843, gamma=math.pi/2)
+    #
+    # Note that the distinction between AAS vs ASA, or SSA vs SAS, is
+    # entirely about *which* angles or sides are given, not (obviously?)
+    # the order of the arguments.
+    #
+    # In the above examples, t1 and t2 both specify the same classic 3/4/5
+    # pythagorean triangle, but it is unlikely that t1.c == t2.c because of
+    # floating point and trig function precision.
     #
     # NOTES:
     # * SSS:   The three sides must satisfy the triangle inequality
@@ -112,7 +119,7 @@ class Triangle:
     # Raises ValueError for various sanity check errors (sides < 0, etc)
     #
     @classmethod
-    def __kwargschecker(cls, kwargs):
+    def __copy_and_check_kwargs(cls, kwargs):
         pm = {}
         for k, v in kwargs.items():
             if v <= 0:
@@ -144,7 +151,7 @@ class Triangle:
           t = Triangle(**sss_1)
         """
 
-        pm = cls.__kwargschecker(kwargs)
+        pm = cls.__copy_and_check_kwargs(kwargs)
         sv = [k for k in cls.side_names if k in pm]
         av = [k for k in cls.angle_names if k in pm]
 
@@ -184,6 +191,8 @@ class Triangle:
     @classmethod
     def coordinates_to_sss(cls, coordinates):
         """Return SSS dict given ((x0, y0), (x1, y1), (x2, y2))"""
+        if len(coordinates) != 3:
+            raise ValueError(f"{coordinates} must be three (x,y) tuples")
         sss = {}
         for twopts, k in zip(combinations(coordinates, 2), cls.side_names):
             v0, v1 = twopts
@@ -207,10 +216,12 @@ class Triangle:
             #   a be the opposing side (it can be either side given)
             #   b be the other side (the one that isn't "a")
             c_name = cls.other_names(*sv)[0]
+            oc_name = cls.opposing_name(c_name)
             alpha = pm[av[0]]
             a_name = cls.opposing_name(av[0])
             a = pm[a_name]
             b_name = cls.other_names(a_name, c_name)[0]
+            ob_name = cls.opposing_name(b_name)
             b = pm[b_name]
 
             # Law of Sines a/sin(alpha) = b/sin(beta) = c/sin(gamma)
@@ -218,14 +229,12 @@ class Triangle:
             try:
                 beta = math.asin((alpha_sin * b) / a)
             except ValueError:
-                raise ValueError("no angle solution for {}".format(
-                        cls.opposing_name(b_name)))
+                raise ValueError(f"no angle solution for {ob_name}")
 
             # third angle is whatever is left
             gamma = math.pi - (alpha + beta)
             if gamma <= 0:
-                raise ValueError("no angle solution for {}".format(
-                        cls.opposing_name(c_name)))
+                raise ValueError(f"no angle solution for {oc_name}")
 
             # third side from law of Sines
             c = (math.sin(gamma) * a) / alpha_sin
