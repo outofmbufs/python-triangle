@@ -87,17 +87,23 @@ class Triangle:
     #
     # NOTES:
     # * SSS:   The three sides must satisfy the triangle inequality
-    # * SSA:   Raises exception if there are two solutions; use
-    #          (classmethod) sss_solutions to get both solution forms.
+    # * SSA:   Raises exception (by default) if there are two solutions;
+    #          use (classmethod) sss_solutions to get both solution forms.
+    #          Alternatively, specify ssa_selector=Triangle.acute or
+    #          ssa_selector=Triangle.obtuse
     # * AAAS:  Redundant; not accepted. Instead: omit one A --> AAS/ASA
     #
 
-    def __init__(self, **kwargs):
+    def __init__(self, ssa_choice=None, **kwargs):
         """Create a Triangle given three params (SSS/SSA/SAS/AAS/ASA).
 
         Examples:
            t = Triangle(a=3, b=4, c=5)
            t = Triangle(a=8, alpha=math.pi/3, beta=math.pi/3)
+
+        Argument ssa_selector can be used to choose acute or obtuse for
+        SSA solutions that are ambiguous (see docs). By default ambiguous
+        solutions raise ValueError.
         """
 
         # The __repr__ is the original parameters, in a canonical order,
@@ -385,6 +391,20 @@ class Triangle:
         a, b, c = abc
 
         return self.isclose((a * a) + (b * b), (c * c))
+
+    def acute(self):
+        """Return TRUE if not pythagorean and all three angles are < 90."""
+        # To handle floating point (im)precision, if the triangle is
+        # "close enough" to being pythagorean (right triangle), it is
+        # not acute. If it is not close enough, then there is no further
+        # concern about floating point fuzziness.
+        if self.pythagorean():
+            return False
+        return all(a < math.pi/2 for a in self.threeangles())
+
+    def obtuse(self):
+        """Return TRUE if not pythagorean and all three angles are > 90."""
+        return not self.acute()
 
     def area(self):
         """Return triangle area. Always uses Heron's formula."""
