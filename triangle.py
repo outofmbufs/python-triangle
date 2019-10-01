@@ -89,21 +89,43 @@ class Triangle:
     # * SSS:   The three sides must satisfy the triangle inequality
     # * SSA:   Raises exception (by default) if there are two solutions;
     #          use (classmethod) sss_solutions to get both solution forms.
-    #          Alternatively, specify ssa_selector=Triangle.acute or
-    #          ssa_selector=Triangle.obtuse
+    #          Alternatively, specify a triangle_filter (see below)
     # * AAAS:  Redundant; not accepted. Instead: omit one A --> AAS/ASA
     #
-
-    def __init__(self, ssa_choice=None, **kwargs):
+    # Optional parameter triangle_filter can be used to constrain solutions.
+    # The filter is invoked at __init__ time like this:
+    #
+    #       ok = triangle_filter(t)
+    #
+    # where 't' is a Triangle object. It should return True or False
+    # according to whether the triangle is "acceptable" or not.
+    #
+    # The call signature is compatible with using Triangle.acute,
+    # Triangle.obtuse, etc as filters. After filtering solutions there
+    # must be EXACTLY ONE solution or a ValueError is raised.
+    # The expected use case for a triangle_filter is disambiguating
+    # SSA solutions, so for example if an acute triangle is desired:
+    #
+    #    t = Triangle(a=3, b=4, alpha=0.65, triangle_filter=Triangle.acute)
+    #
+    # will work, whereas without the filter it raises ValueError because
+    # there are two solutions to this set of SSA parameters.
+    #
+    # CAUTION: Triangle classification is a three-way function, any given
+    # triangle will be either acute, obtuse, OR pythagorean. It may be
+    # the case that Triangle.not_acute (or Triangle.not_obtuse) is a
+    # better filter than the positive (acute/obtuse) predicate, especially
+    # if any angles are within floating point tolerance of pi/2.
+    #
+    def __init__(self, triangle_filter=None, **kwargs):
         """Create a Triangle given three params (SSS/SSA/SAS/AAS/ASA).
 
         Examples:
            t = Triangle(a=3, b=4, c=5)
            t = Triangle(a=8, alpha=math.pi/3, beta=math.pi/3)
 
-        Argument ssa_selector can be used to choose acute or obtuse for
-        SSA solutions that are ambiguous (see docs). By default ambiguous
-        solutions raise ValueError.
+        Argument ssa_choice can be used to choose when SSA is ambiguous.
+        See documentation for details.
         """
 
         # The __repr__ is the original parameters, in a canonical order,
@@ -111,13 +133,18 @@ class Triangle:
         ordered = self.side_names + self.angle_names
         self.__origparams = [n for n in ordered if n in kwargs]
 
-        # Use the solver turn everything into SSS (possibly two solutions)
-        sss, should_be_none = self.sss_solutions(**kwargs)
-        if should_be_none is not None:
-            raise ValueError(f"{kwargs} is ambiguous")
+        # Use the solver turn everything into SSS (possibly two solutions),
+        # filtered accordingly
+        solns = [s for s in self.sss_solutions(**kwargs)
+                 if s is not None and
+                 (triangle_filter is None or
+                  triangle_filter(self.__class__(**s)))]
+
+        if len(solns) != 1:
+            raise ValueError(f"{kwargs} has {len(solns)} solutions")
 
         # set all the attrs, use kwargs in favor of computed sides or angles
-        for k, v in ChainMap(kwargs, sss, self.compute_angles(sss)).items():
+        for k, v in ChainMap(kwargs, self.compute_angles(*solns)).items():
             setattr(self, k, v)
 
     #
@@ -402,9 +429,17 @@ class Triangle:
             return False
         return all(a < math.pi/2 for a in self.threeangles())
 
+    def not_acute(self):
+        """Convenience for ssa_filter use; allows pythagorean or obtuse."""
+        return self.pythagorean() or self.obtuse()
+
     def obtuse(self):
         """Return TRUE if not pythagorean and all three angles are > 90."""
-        return not self.acute()
+        return not self.pythagorean() and not self.acute()
+
+    def not_obtuse(self):
+        """Convenience for ssa_filter use; allows pythagorean or acute."""
+        return self.pythagorean() or self.acute()
 
     def area(self):
         """Return triangle area. Always uses Heron's formula."""
