@@ -1,16 +1,18 @@
 # python-triangle
 
-A python class implementing triangle objects.
+A python class implementing a triangle solver and triangle objects.
 
 A Triangle has three sides: `a`, `b`, and `c`. It also has three angles: `alpha`, `beta`, `gamma`.
 
-To create a Triangle, specify three parameters in any one of these combinations:
+To solve (create) a Triangle, specify any one of these combinations of parameters:
 
 * Three sides (SSS)
 * Two sides and an adjacent angle (SSA)
 * Two sides and the included angle (SAS)
 * Two angles and the included side (ASA)
 * Two angles and an adjacent side (AAS)
+
+The class invokes the appropriate triangle solution algorithm and computes the remaining parameters from the parameters given.
 
 Examples:
 
@@ -23,7 +25,7 @@ Examples:
     # create "the same" triangle, within math tolerances:
     t = Triangle(a=8, beta=math.pi/3, gamma=math.pi/3)
 
-Regardless of how it is created, the resulting `Triangle` object will have all six attributes present: sides `a`, `b`, `c` and respectively-opposing angles `alpha`, `beta`, `gamma`.
+Regardless of how it is created, the resulting `Triangle` object will have all six attributes present: sides `a`, `b`, `c` and respectively-opposing angles `alpha`, `beta`, `gamma`. 
 
 When specifying a `Triangle` in `SSS` form, all three sides must obey the *Triangle Inequality* permutations:
 
@@ -31,7 +33,7 @@ When specifying a `Triangle` in `SSS` form, all three sides must obey the *Trian
     a + c > b
     b + c > a
 
-When specifying in `SSA` form, some combinations of values may have two triangle solutions. A `ValueError` exception is raised in this case; applications must convert this form into a different, unambiguous, specification (and choose one of the two solutions to do so). A classmethod, `sss_solutions`, is available for this purpose (see description).
+When specifying in `SSA` form, some combinations of values may have two triangle solutions. By default, a `ValueError` exception is raised when this happens. 
 
 As an example of an ambiguous case, note these two triangles:
 
@@ -42,7 +44,33 @@ both have `alpha` of 45 degrees; therefore this raises ValueError:
 
     t = Triangle(a=3, b=4, alpha=math.pi/4)
 
-as there is no way to know which solution is intended. Use `sss_solutions` and select the desired solution from the two it will return.
+as there is no way to know which solution is intended. There are two ways to handle this case:
+
+1.  Use `sss_solutions` and select the desired solution from the two it will return.
+
+2. Specify a `triangle_filter`.
+
+If the optional `triangle_filter` parameter is specified to `Triangle`, it will be invoked at `__init__` time like this:
+
+    ok = triangle_filter(t)
+
+where `t` is a candidate `Triangle` object. The filter should return True or False according to whether the triangle is "acceptable" or not.
+
+The call signature is compatible with using `Triangle.acute`, `Triangle.obtuse`, etc as filters. After filtering,  there must be exactly one solution or a `ValueError` is raised.
+
+So, for example:
+
+    t = Triangle(a=3, b=4, alpha=math.pi/4,
+                 triangle_filter=Triangle.obtuse)
+
+will return the same triangle shown as `t1` above. Similarly:
+
+    t = Triangle(a=3, b=4, alpha=math.pi/4,
+                 triangle_filter=Triangle.acute)
+
+will return `t2`.
+
+CAUTION: A triangle can be "not acute" and "not obtuse" ... it can be pythagorean. Floating point fuzziness must be understood with care when using filters especially if any of the implied angles are very close to `pi/2`.
 
 As a convenience, a classmethod `coordinates_to_sss` converts an iterable of three vertex coordinates (each coordinate an (x, y) tuple) into a dict of three side lengths using `d = sqrt(dx^2 + dy^2)`. So, for example:
 
@@ -87,7 +115,15 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle.
 
-* t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle.
+* t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle. Can be used as a `triangle_filter`. Angles are compared to pi/2 using `isclose`.
+
+* t.`acute()`: Returns True if `t` is an acute triangle, that is, all angles are less than pi/2. If `t` is `pythagorean` it will not be `acute`. Can be used as a `triangle_filter`.
+
+* t.`obtuse()`: Returns True if `t` is an obtuse triangle, that is, there is an angle greater than pi/2. If `t` is `pythagorean` it will not be `obtuse`. Can be used as a `triangle_filter`.
+
+* t.`not_acute()`: Returns True if `t` is `obtuse` or `pythagorean`. Can be used as a `triangle_filter`.
+
+* t.`not_obtuse()`: Returns True if `t` is `acute` or `pythagorean`. Can be used as a `triangle_filter`.
 
 * Triangle.`sss_solutions(**kwargs)`: Given three parameters (e.g., two sides and one angle), returns a tuple of two dictionaries, the second of which may be None. Each dictionary contains an SSS specification (i.e., an `a`, `b`, and `c`) suitable for use in a `Triangle()` call. This is primarily useful in ambiguous SSA cases where there are two possible solutions (as otherwise the parameters could also just be given to Triangle() directly).
 
