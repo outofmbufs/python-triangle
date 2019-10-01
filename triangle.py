@@ -518,6 +518,7 @@ if __name__ == '__main__':
                 self.assertTrue(self.fuzzy_equal(tx.area(), t345.area()))
 
         def test_triangle_solutions(self):
+            # these test vectors have been worked out by hand
             tests = [
                 ({'a': 3, 'b': 4, 'alpha': 0.6724600056836807,
                   'triangle_filter': Triangle.acute},
@@ -525,6 +526,10 @@ if __name__ == '__main__':
                 ({'a': 3, 'b': 4, 'alpha': 0.6724600056836807,
                   'triangle_filter': Triangle.obtuse},
                  {'c': 1.4583333333}),
+                ({'alpha': 0.907922503, 'beta': 1.19862779, 'c': 1.2},
+                 {'a': 1.1, 'b': 1.3, 'gamma': 1.03504236059}),
+                ({'a': 1.1, 'beta': 1.19862779, 'c': 1.2},
+                 {'alpha': 0.907922503, 'b': 1.3, 'gamma': 1.03504236059}),
                 ]
 
             for v, rslts in tests:
