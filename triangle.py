@@ -133,8 +133,7 @@ class Triangle:
         ordered = self.side_names + self.angle_names
         self.__origparams = [n for n in ordered if n in kwargs]
 
-        # Use the solver turn everything into SSS (possibly two solutions),
-        # filtered accordingly
+        # Use the solver, turn all into SSS (possibly two solutions), filter
         solns = [s for s in self.sss_solutions(**kwargs)
                  if s is not None and
                  (triangle_filter is None or
@@ -497,7 +496,7 @@ if __name__ == '__main__':
         def fuzzy_equal(a, b):
             return abs(a - b) < .000001
 
-        def test_triangle_solutions(self):
+        def test_345triangle_solutions(self):
             t345 = self.t345
             alpha, beta, gamma = t345.threeangles()
             test345s = [
@@ -517,6 +516,22 @@ if __name__ == '__main__':
 
                 self.assertTrue(t345.similar(tx))
                 self.assertTrue(self.fuzzy_equal(tx.area(), t345.area()))
+
+        def test_triangle_solutions(self):
+            tests = [
+                ({'a': 3, 'b': 4, 'alpha': 0.6724600056836807,
+                  'triangle_filter': Triangle.acute},
+                 {'c': 4.8}),
+                ({'a': 3, 'b': 4, 'alpha': 0.6724600056836807,
+                  'triangle_filter': Triangle.obtuse},
+                 {'c': 1.4583333333}),
+                ]
+
+            for v, rslts in tests:
+                tx = Triangle(**v)
+                for a in rslts:
+                    self.assertTrue(
+                        self.fuzzy_equal(getattr(tx, a), rslts[a]))
 
         def test_similar(self):
             self.assertTrue(self.t345.similar(Triangle(a=5, b=3, c=4)))
