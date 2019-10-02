@@ -91,11 +91,11 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 ## METHODS
 
-* t = `Triangle(**kwargs)`: Constructor. As already described above.
+* t = `Triangle(triangle_filter=None, **kwargs)`: Constructor. As already described above.
 
-* t.`threesides()`: Return all three sides of `t`, as a tuple `(a, b, c)`.
+* t.`threesides()`: Return all three side values of `t`, as a tuple `(a, b, c)`.
 
-* t.`threeangles()`: Return all three angles of `t`, as a tuple.
+* t.`threeangles()`: Return all three angle values of `t`, as a tuple.
 
 * t.`area()`: Return area of `t`.
 
@@ -111,9 +111,9 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`scale(factor)`: Adjusts (multiplies) all three sides by `factor`.
 
-* t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`).
+* t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`). Can be used as a `triangle_filter'.
 
-* t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle.
+* t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle. Can be used as a `triangle_filter'.
 
 * t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle. Can be used as a `triangle_filter`. Angles are compared to pi/2 using `isclose`.
 
@@ -135,14 +135,12 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 An example of how to use `sss_solutions`:
 
-    solution_1, solution_2 = Triangle.sss_solutions(a=3, b=4, alpha=math.pi/4)
-    t = Triangle(**solution_1)
+    sol_1, sol_2 = Triangle.sss_solutions(a=3, b=4, alpha=math.pi/4)
+    t1 = Triangle(**sol_1)
+    t2 = Triangle(**sol_2)
 
-produces the same `Triangle` that:
+produces the two triangles that those parameters specify. Note that in the general case `sol_2` can be (often is) `None` and that should be checked.
 
-    t1 = Triangle(a=3, b=4, c=3.828427124746191)
-
-produces.
 
 ## Subclassing
 Three class attributes can be overridden by subclasses if desired for customizing Triangles:
