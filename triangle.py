@@ -45,8 +45,12 @@ class Triangle:
     # Consequently, the solver doesn't access attributes directly by name.
     # Instead it accesses them indirectly/algorithmically, to allow full
     # flexibility for SSA/SAS/AAS/ASA specifications. All other methods also
-    # use that indirection. This means if a subclass wants to it can redefine
-    # the attribute names themselves by overriding the above tuples.
+    # use that indirection.
+    #
+    # A side benefit, preserved through careful coding throughout to never
+    # reference attributes by name directly, is that subclasses can redefine
+    # the attribute names themselves by overriding the above tuples. Not clear
+    # how useful it is, but once the solver was written that way... why not.
     #
     # The order in these tuples must correspond, so that:
     #
@@ -124,14 +128,13 @@ class Triangle:
            t = Triangle(a=3, b=4, c=5)
            t = Triangle(a=8, alpha=math.pi/3, beta=math.pi/3)
 
-        Argument ssa_choice can be used to choose when SSA is ambiguous.
+        Argument triangle_filter can be used to choose when SSA is ambiguous.
         See documentation for details.
         """
 
-        # The __repr__ is the original parameters, in a canonical order,
-        # so record which ones are the originals...
-        ordered = self.side_names + self.angle_names
-        self.__origparams = [n for n in ordered if n in kwargs]
+        # The __repr__ is the original parameters, in a canonical order.
+        self.__origparams = [
+            n for n in self.side_names + self.angle_names if n in kwargs]
 
         # Use the solver, turn all into SSS (possibly two solutions), filter
         solns = [s for s in self.sss_solutions(**kwargs)
@@ -198,7 +201,7 @@ class Triangle:
             return cls.__sas_ssa(sv, av, pm)
         elif len(sv) == 3:
             # SSS case; solution is as given but verify triangle rules
-            a, b, c = [pm[s] for s in cls.side_names]
+            a, b, c = pm.values()
             if a + b <= c or a + c <= b or b + c <= a:
                 raise ValueError(f"{pm} fails triangle inequality tests")
             return pm, None
@@ -541,8 +544,14 @@ if __name__ == '__main__':
         def test_similar(self):
             self.assertTrue(self.t345.similar(Triangle(a=5, b=3, c=4)))
             self.assertTrue(self.t345.similar(self.t345))
-            for factors in (0.1, 1.01, 2, 44, .00000001):
-                tx = 1
+            for f in (0.1, 1.01, 2, 44, .00000001, 1e23):
+                for a, b, c in ((3, 4, 5), (3, 5, 4),
+                                (4, 3, 5), (4, 5, 3),
+                                (5, 3, 4), (5, 4, 3)):
+                    tx = Triangle(a=a, b=b, c=c)
+                    tx.scale(f)
+                    self.assertTrue(self.t345.similar(tx))
+
             self.assertFalse(self.t345.similar(Triangle(a=5, b=5, c=4)))
 
         def test_nonsolutions(self):
@@ -611,5 +620,14 @@ if __name__ == '__main__':
             for coords in tv:
                 sss = Triangle.coordinates_to_sss(coords)
                 self.assertTrue(self.t345.similar(Triangle(**sss)))
+
+        def test_subclass_renaming(self):
+            class PQRTriangle(Triangle):
+                side_names = ('p', 'q', 'r')
+                angle_names = ('huey', 'dewey', 'louie')
+
+            pqr345 = PQRTriangle(p=3, q=4, r=5)
+            self.assertTrue(self.t345.similar(pqr345))
+            self.assertTrue(pqr345.similar(self.t345))
 
     unittest.main()
