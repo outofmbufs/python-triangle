@@ -395,7 +395,7 @@ class Triangle:
 
     def copy(self):
         """Return new copy of a Triangle."""
-        t = Triangle(**{k: getattr(self, k) for k in self.__origparams})
+        t = self.__class__(**{k: getattr(self, k) for k in self.__origparams})
         # because there's no guarantee attrs haven't bashed inconsistently...
         for k in self.side_names + self.angle_names:
             setattr(t, k, getattr(self, k))
@@ -627,7 +627,10 @@ if __name__ == '__main__':
                 angle_names = ('huey', 'dewey', 'louie')
 
             pqr345 = PQRTriangle(p=3, q=4, r=5)
-            self.assertTrue(self.t345.similar(pqr345))
-            self.assertTrue(pqr345.similar(self.t345))
+            pcopy = pqr345.copy()
+            for t in (pqr345, pcopy):
+                self.assertTrue(self.t345.similar(t))
+                self.assertTrue(t.similar(self.t345))
+                self.assertTrue(math.isclose(t.louie, math.pi/2))
 
     unittest.main()
