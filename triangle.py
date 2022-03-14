@@ -137,10 +137,12 @@ class Triangle:
             n for n in self.side_names + self.angle_names if n in kwargs]
 
         # Use the solver, turn all into SSS (possibly two solutions), filter
+        # NOTE: There is a (subtle) recursion here if a triangle_filter
+        #       was specified -- construct a trial triangle from SSS
+        #       (and no filter) and pass it to the given filter to test it.
         solns = [s for s in self.sss_solutions(**kwargs)
-                 if s is not None and
-                 (triangle_filter is None or
-                  triangle_filter(self.__class__(**s)))]
+                 if s is not None and (triangle_filter is None or
+                                       triangle_filter(self.__class__(**s)))]
 
         if len(solns) != 1:
             raise ValueError(f"{kwargs} has {len(solns)} solutions")
@@ -150,12 +152,11 @@ class Triangle:
             setattr(self, k, v)
 
     #
-    # Checks legality of kwargs, returns a copy of them
+    # Checks legality of kwargs
     # Raises ValueError for various sanity check errors (sides < 0, etc)
     #
     @classmethod
-    def __copy_and_check_kwargs(cls, kwargs):
-        pm = {}
+    def __check_kwargs(cls, kwargs):
         for k, v in kwargs.items():
             if v <= 0:
                 raise ValueError(f"{k!r} (={v}) must be > 0")
@@ -164,9 +165,6 @@ class Triangle:
                     raise ValueError(f"angle {k!r} (={v}) >= π")
             elif k not in cls.side_names:
                 raise TypeError(f"{cls} got unexpected keyword arg {k!r}")
-            pm[k] = v
-
-        return pm
 
     def __repr__(self):
         s = f"{self.__class__.__name__}("
@@ -186,28 +184,28 @@ class Triangle:
           t = Triangle(**sss_1)
         """
 
-        pm = cls.__copy_and_check_kwargs(kwargs)
-        sv = [k for k in cls.side_names if k in pm]
-        av = [k for k in cls.angle_names if k in pm]
+        cls.__check_kwargs(kwargs)
+        sv = [k for k in cls.side_names if k in kwargs]
+        av = [k for k in cls.angle_names if k in kwargs]
 
         # all valid forms have exactly three elements in aggregate
-        if len(pm) != 3:
-            raise ValueError(f"{pm} over/under specified")
+        if len(kwargs) != 3:
+            raise ValueError(f"{kwargs} over/under specified")
 
         # 0, 1, 2, or 3 sides given:
         if len(sv) == 1:
-            return cls.__aas_asa(sv, av, pm)
+            return cls.__aas_asa(sv, av, kwargs)
         elif len(sv) == 2:
-            return cls.__sas_ssa(sv, av, pm)
+            return cls.__sas_ssa(sv, av, kwargs)
         elif len(sv) == 3:
             # SSS case; solution is as given but verify triangle rules
-            a, b, c = pm.values()
+            a, b, c = kwargs.values()
             if a + b <= c or a + c <= b or b + c <= a:
-                raise ValueError(f"{pm} fails triangle inequality tests")
-            return pm, None
+                raise ValueError(f"{kwargs} fails triangle inequality tests")
+            return kwargs, None
 
         # reaching here implies 0 sides given
-        raise ValueError(f"{pm} must specify at least one side")
+        raise ValueError(f"{kwargs} must specify at least one side")
 
     @classmethod
     def compute_angles(cls, sss):
