@@ -175,7 +175,7 @@ class Triangle:
 
     @classmethod
     def sss_solutions(cls, **kwargs):
-        """Return two dicts, (1 per solution), 2nd of which might be None.
+        """Return two SSS dicts, (1 per solution), 2nd of which might be None.
 
         This is the heart of the triangle solver and is used by __init__().
         It can also be useful to invoke directly for ambiguous SSA cases,
@@ -300,6 +300,7 @@ class Triangle:
             else:
                 d2 = None
         else:
+            # SAS - much simpler
             a = pm[sv[0]]
             c = pm[sv[1]]
             beta = pm[av[0]]
@@ -387,9 +388,8 @@ class Triangle:
 
     def canonicaltriangle(self):
         """Return a new triangle with sides in size order low-to-high."""
-        abc = self.threesides()
-        abc.sort()
-        return Triangle(**{self.side_names[i]: abc[i] for i in range(3)})
+        sides = self.threesides()
+        return Triangle(**dict(zip(self.side_names, sorted(sides))))
 
     def copy(self):
         """Return new copy of a Triangle."""
@@ -413,9 +413,7 @@ class Triangle:
 
     def pythagorean(self):
         """Return TRUE if triangle is a right triangle (uses isclose)."""
-        abc = self.threesides()
-        abc.sort()
-        a, b, c = abc
+        a, b, c = sorted(self.threesides())
 
         return self.isclose((a * a) + (b * b), (c * c))
 
@@ -541,6 +539,12 @@ if __name__ == '__main__':
                 self.assertTrue(t345.similar(tx))
                 self.assertTrue(self.fuzzy_equal(tx.area(), t345.area()))
 
+        def test_pyth(self):
+            self.assertTrue(Triangle.pythagorean(self.t345))
+            a, b, c = self.t345.threesides()
+            t543 = Triangle(a=c, b=b, c=a)
+            self.assertTrue(t543.pythagorean())
+
         def test_triangle_solutions(self):
             # these test vectors have been worked out by hand
             tests = [
@@ -629,6 +633,19 @@ if __name__ == '__main__':
                     r = sorted(list(Triangle.other_names(*names)))
                     x = sorted(list(expected))
                     self.assertEqual(r, x)
+
+        def test_canon(self):
+            t = Triangle(a=5, b=4, c=3)
+            a, b, c = t.canonicaltriangle().threesides()
+            self.assertTrue(a <= b)
+            self.assertTrue(b <= c)
+
+        def test_opposingname(self):
+            for a, s in zip(Triangle.angle_names, Triangle.side_names):
+                self.assertEqual(Triangle.opposing_name(a), s)
+                self.assertEqual(Triangle.opposing_name(s), a)
+
+            self.assertEqual(Triangle.opposing_name('rumplestiltskin'), None)
 
         def test_coordinates(self):
             # various forms of a 3,4,5 triangle specified as coordinates
