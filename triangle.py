@@ -478,6 +478,29 @@ class Triangle:
         for n in self.side_names:
             setattr(self, n, getattr(self, n) * factor)
 
+    # Factory to make a Triangle subclass from a string specification.
+    # Handy for simple geometry problems where the angles are given
+    # explicit names and the sides are named from their adjacent angles.
+    #
+    #   TX = fromnames("ABC")
+    #
+    # is equivalent to:
+    #    class TX(Triangle):
+    #       angle_names = ('A', 'B', 'C')
+    #       side_names = ('BC', 'AC', 'AB')   # note order; opposing sides
+    #
+    @classmethod
+    def fromnames(cls, s, /, *, name=None):
+        if len(s) != 3:
+            raise ValueError(f"names string ({s!r}) must be length 3")
+        angles = tuple(s)
+        sides = (angles[1] + angles[2],
+                 angles[0] + angles[2],
+                 angles[0] + angles[1])
+        return type(name or f"fromnames.{s}",
+                    (Triangle,),
+                    dict(angle_names=angles, side_names=sides))
+
 
 if __name__ == '__main__':
     import unittest
@@ -630,5 +653,12 @@ if __name__ == '__main__':
                 self.assertTrue(self.t345.similar(t))
                 self.assertTrue(t.similar(self.t345))
                 self.assertTrue(math.isclose(t.louie, math.pi/2))
+
+        def test_fromnames(self):
+            # similar to subclass but create class via fromnames
+            PQRTriangle = Triangle.fromnames('PQR')
+            pqr345 = PQRTriangle(PQ=3, QR=4, PR=5)
+            self.assertTrue(pqr345.similar(self.t345))
+            self.assertTrue(math.isclose(pqr345.Q, math.pi/2))
 
     unittest.main()
