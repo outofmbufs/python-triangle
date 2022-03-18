@@ -659,6 +659,26 @@ if __name__ == '__main__':
                 sss = Triangle.coordinates_to_sss(coords)
                 self.assertTrue(self.t345.similar(Triangle(**sss)))
 
+        def test_equilat_iso(self):
+            a = b = c = 1.0
+            t = Triangle(a=a, b=b, c=c)
+            self.assertTrue(t.equilateral())
+
+            # XXX this is ad-hoc but: by inspection/experiment
+            #     at least this many compounded ulp can be added
+            #     and the triangle will still be 'isclose' to equilateral
+            # These triangles are also isoceles!
+            for i in range(1000):
+                with self.subTest(i=i, c=c):
+                    c += math.ulp(c)
+                    t = Triangle(a=a, b=b, c=c)
+                    self.assertTrue(t.equilateral())
+                    self.assertTrue(t.isoceles())
+
+            t = Triangle(a=1.0, b=1.0, c=1.001)    # a bridge too far
+            self.assertFalse(t.equilateral())
+            self.assertTrue(t.isoceles())
+
         def test_subclass_renaming(self):
             class PQRTriangle(Triangle):
                 side_names = ('p', 'q', 'r')
