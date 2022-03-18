@@ -404,11 +404,11 @@ class Triangle:
         a, b, c = self.threesides()
         return self.isclose(a, b) and self.isclose(b, c) and self.isclose(a, c)
 
-    def isoceles(self):
-        """Return TRUE if triangle is isoceles (uses isclose)."""
+    def isosceles(self):
+        """Return TRUE if triangle is isosceles (uses isclose)."""
         a, b, c = self.threesides()
 
-        # NOTE: "inclusive" definition in which equilateral is also isoceles
+        # NOTE: "inclusive" definition in which equilateral is also isosceles
         return self.isclose(a, b) or self.isclose(a, c) or self.isclose(b, c)
 
     def pythagorean(self):
@@ -667,17 +667,17 @@ if __name__ == '__main__':
             # XXX this is ad-hoc but: by inspection/experiment
             #     at least this many compounded ulp can be added
             #     and the triangle will still be 'isclose' to equilateral
-            # These triangles are also isoceles!
+            # These triangles are also isosceles!
             for i in range(1000):
                 with self.subTest(i=i, c=c):
                     c += math.ulp(c)
                     t = Triangle(a=a, b=b, c=c)
                     self.assertTrue(t.equilateral())
-                    self.assertTrue(t.isoceles())
+                    self.assertTrue(t.isosceles())
 
             t = Triangle(a=1.0, b=1.0, c=1.001)    # a bridge too far
             self.assertFalse(t.equilateral())
-            self.assertTrue(t.isoceles())
+            self.assertTrue(t.isosceles())
 
         def test_subclass_renaming(self):
             class PQRTriangle(Triangle):
