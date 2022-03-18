@@ -480,21 +480,83 @@ class Triangle:
     # Handy for simple geometry problems where the angles are given
     # explicit names and the sides are named from their adjacent angles.
     #
-    #   TX = fromnames("ABC")
+    #   TX = fromnames('ABC')
     #
     # is equivalent to:
     #    class TX(Triangle):
     #       angle_names = ('A', 'B', 'C')
     #       side_names = ('BC', 'AC', 'AB')   # note order; opposing sides
     #
+    # Alternatively, but somewhat less succinctly, specific names can
+    # be given to specific angles and sides. To do so specify three
+    # strings, one for each side/angle pair, in this format:
+    #
+    #         sidename<anglename
+    #
+    # For example, the equivalent of fromnames('ABC') in this format is:
+    #
+    #    fromnames('BC<A', 'AC<B', 'AB<C')
+    #
+    # A sidename can be inferred from an angle name and vice-versa.
+    # Defaulted side names are constructed as 'side'+anglename.
+    # Defaulted angle names are constructed as 'A'+sidename[-1],
+    # which works well for names like 'side1', 'side2' etc but may
+    # not be helpful in all cases.
+    #
+    # EXAMPLES:
+    #
+    #  fromnames('<A', '<B', '<C')
+    #
+    #    ==> angle_names = ('A', 'B', 'C')
+    #        side_names = ('sideA', 'sideB', 'sideC')
+    #
+    #  fromnames('s1', 's2', 's3')
+    #
+    #    ==> angle_names = ('A1', 'A2', 'A3')
+    #        side_names = ('s1', 's2', 's3')
+    #
     @classmethod
-    def fromnames(cls, s, /, *, name=None):
-        if len(s) != 3:
-            raise ValueError(f"names string ({s!r}) must be length 3")
-        angles = tuple(s)
-        sides = (angles[1] + angles[2],
-                 angles[0] + angles[2],
-                 angles[0] + angles[1])
+    def fromnames(cls, s, *s23, name=None):
+        specs = (s, *s23)
+        if len(specs) == 1:
+            # the simple case, single-letter angle names (in s)
+            if len(s) != 3:
+                raise ValueError(f"names string ({s!r}) must be length 3")
+            angles = tuple(s)
+            sides = (angles[1] + angles[2],
+                     angles[0] + angles[2],
+                     angles[0] + angles[1])
+        elif len(specs) != 3:
+            raise ValueError(f"invalid args {specs!r}; need 3 strings (or 1).")
+        else:
+            angles = []
+            sides = []
+            for spec in specs:
+                p = spec.split('<')
+                ps = p[0]
+                pa = p[1] if len(p) == 2 else None
+                if pa is None:
+                    sides.append(ps)
+                    angles.append('A' + ps[-1])
+                elif not ps:          # just an angle name, no side
+                    sides.append('side' + pa)
+                    angles.append(pa)
+                else:
+                    sides.append(ps)
+                    angles.append(pa)
+
+            # not really necessary, but make them tuples not lists
+            sides = tuple(sides)
+            angles = tuple(angles)
+
+            # if no name given, make one that probably makes no one happy
+            if not name:
+                name = 'T' + sides[0] + angles[0]
+        # the results must have exactly six unique names
+        u = set(sides + angles)
+        if len(u) != 6:
+            raise ValueError("Could not construct six unique names")
+
         return type(name or f"fromnames.{s}",
                     (Triangle,),
                     dict(angle_names=angles, side_names=sides))
@@ -697,5 +759,32 @@ if __name__ == '__main__':
             pqr345 = PQRTriangle(PQ=3, QR=4, PR=5)
             self.assertTrue(pqr345.similar(self.t345))
             self.assertTrue(math.isclose(pqr345.Q, math.pi/2))
+
+        def test_fromnames2(self):
+            # a few tests of the other fromname syntax
+            PQRTriangle = Triangle.fromnames('<P', '<Q', '<R')
+            pqr345 = PQRTriangle(sideP=3, sideQ=4, sideR=5)
+            self.assertTrue(pqr345.similar(self.t345))
+            self.assertTrue(math.isclose(pqr345.R, math.pi/2))
+
+            PQRTriangle = Triangle.fromnames('P', 'Q', 'R', name='sidesPQR')
+            pqr345 = PQRTriangle(P=3, Q=4, R=5)
+            self.assertTrue(pqr345.similar(self.t345))
+            self.assertTrue(math.isclose(pqr345.AR, math.pi/2))
+
+            # these are all illegal
+            bads = (
+                ('XXX',),
+                ('X', 'Y'),
+                ('W', 'X', 'Y', 'Z'),
+                ('A', 'B', 'A'),
+                ('AA', 'AB', 'AC'),
+                ('sideA<A', 'A<sideA', 'x')
+            )
+
+            for bad in bads:
+                with self.subTest(bad=bad):
+                    with self.assertRaises(ValueError):
+                        _ = Triangle.fromnames(*bad, name='sidesPQR')
 
     unittest.main()
