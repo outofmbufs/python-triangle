@@ -480,6 +480,10 @@ class Triangle:
     # Handy for simple geometry problems where the angles are given
     # explicit names and the sides are named from their adjacent angles.
     #
+    # There are three formats accepted:
+    #
+    # FORMAT 1: THREE SINGLE-LETTER ANGLE NAMES
+    #
     #   TX = fromnames('ABC')
     #
     # is equivalent to:
@@ -487,9 +491,21 @@ class Triangle:
     #       angle_names = ('A', 'B', 'C')
     #       side_names = ('BC', 'AC', 'AB')   # note order; opposing sides
     #
-    # Alternatively, but somewhat less succinctly, specific names can
-    # be given to specific angles and sides. To do so specify three
-    # strings, one for each side/angle pair, in this format:
+    # The side_names are constructed according to their adjacent angle names.
+    #
+    # FORMAT 2: A SINGLE-LETTER 'triangle' NAME
+    #
+    #   TX = fromnames('A')
+    #
+    # is equivalent to:
+    #    class TX(Triangle):
+    #       angle_names = ('A1', 'A2', 'A3')
+    #       side_names = ('A2A3', 'A1A3', 'A1A2')
+    #
+    # FORMAT 3: EXPLICIT ANGLE AND SIDE NAMING
+    #
+    # Specific names can be given to specific angles and sides. To do so
+    # specify three  strings, one for each side/angle pair, in this format:
     #
     #         sidename<anglename
     #
@@ -518,6 +534,8 @@ class Triangle:
     @classmethod
     def fromnames(cls, s, *s23, name=None):
         specs = (s, *s23)
+        if len(specs) == 1 and len(s) == 1:   # "triangle name" format
+            specs = ('<' + s + '1', '<' + s + '2', '<' + s + '3')
         if len(specs) == 1:
             # the simple case, single-letter angle names (in s)
             if len(s) != 3:
