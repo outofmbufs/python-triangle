@@ -659,6 +659,15 @@ if __name__ == '__main__':
 
             self.assertFalse(self.t345.similar(Triangle(a=5, b=5, c=4)))
 
+            # ensure that similarity works across different subclasses
+            # with different angle names. This is also (implicitly) a
+            # test of the fromnames function.
+            TX = Triangle.fromnames('X')
+            TY = Triangle.fromnames('Y')
+            x = TX(X1=0.5, X2=0.6, sideX3=9)
+            y = TY(Y1=0.5, Y2=0.6, sideY3=9)
+            self.assertTrue(x.similar(y))
+
         def test_nonsolutions(self):
             alpha, beta, gamma = self.t345.threeangles()
 
