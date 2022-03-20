@@ -131,6 +131,9 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation/reflection. Uses isclose()
 
+* Triangle.`fromnames(s, *s23, name=None)`: Factory for creating a subclass with different angle and side names. `See 'fromnames()` section below for details.
+
+
 ### More about `sss_solutions`
 
 An example of how to use `sss_solutions`:
@@ -174,4 +177,66 @@ This subclass changes the comparison method to be EXACT. Note that this could ha
         def isclose(a, b):
             return a == b
 
+
+## fromnames(): Subclass Factory
+A convenience factory method, `fromnames` provides a short-cut for common cases of subclassing Triangle to rename angles and sides. The factory accepts one, or three, string arguments using the following formats:
+
+FORMAT 1: Three single-letter angle names:
+
+    TX = fromnames('ABC')
+
+is equivalent to:
+
+    class TX(Triangle):
+        angle_names = ('A', 'B', 'C')
+        side_names = ('BC', 'AC', 'AB')
+
+The `side_names` are automatically defined accoridng to their adjacent angle names, using the ordering as shown in the example.
+
+Thus:
+
+    TX = fromnames('ABC')
+    t = TX(A=0.6435, B=0.9273, AB=5)
+    print(t.threesides())
+
+will print `[2.999995564845257, 4.000014345976413, 5]`, an (approximate) version of a 3/4/5 triangle.
+
+
+FORMAT 2: One single-letter "triangle name":
+
+    TX = fromnames('A')
+
+is equivalent to:
+
+    class TX(Triangle):
+        angle_names = ('A1', 'A2', 'A3')
+        side_names = ('sideA1', 'sideA2', 'sideA3')
+
+
+FORMAT 3: Explicit angle and side naming
+
+This format allows specific names to be given to specific angles and sides. At some point using an explicit subclass instead of the "shorter" factory might make more sense, but this format provides an alternative way to do that.
+
+Specify three strings, one for each side and angle pair, each string in this format:
+
+`sidename<anglename` (where the `<` is literal)
+
+For example, the equivalent of `fromnames('ABC')` in this format is:
+
+    fromnames('BC<A', 'AC<B', 'AB<C')
+
+If the sidename is left out (nothing before the '<') it will be inferred from the corresponding angle name. If the anglename is left out (no '<' at all) it will be inferred from the sidename:
+
+* Defaulted side names are constructed as 'side'+anglename.
+* Defaulted angle names are constructed as 'A'+sidename[-1], which works well for side names like 'side1', 'side2', etc but may not be helpful in other cases.
+
+EXAMPLES:
+
+    fromnames('<A', '<B', '<C')
+
+is equivalent to setting `angle_names = ('A', 'B', 'C')` and `side_names = ('sideA', 'sideB', 'sideC')`
+
+    fromnames('s1', 's2', 's3')
+
+is equivalent to setting `angle_names = ('A1', 'A2', 'A3')` and `side_names = ('s1', 's2', 's3')`
 
