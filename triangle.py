@@ -779,7 +779,7 @@ if __name__ == '__main__':
             self.assertTrue(math.isclose(pqr345.Q, math.pi/2))
 
         def test_fromnames2(self):
-            # a few tests of the other fromname syntax
+            # a few tests of the other fromname formats
             PQRTriangle = Triangle.fromnames('<P', '<Q', '<R')
             pqr345 = PQRTriangle(sideP=3, sideQ=4, sideR=5)
             self.assertTrue(pqr345.similar(self.t345))
@@ -789,6 +789,14 @@ if __name__ == '__main__':
             pqr345 = PQRTriangle(P=3, Q=4, R=5)
             self.assertTrue(pqr345.similar(self.t345))
             self.assertTrue(math.isclose(pqr345.AR, math.pi/2))
+
+            TA = Triangle.fromnames('A')
+            self.assertEqual(TA.side_names[0], 'sideA1')
+            self.assertEqual(TA.side_names[1], 'sideA2')
+            self.assertEqual(TA.side_names[2], 'sideA3')
+            self.assertEqual(TA.angle_names[0], 'A1')
+            self.assertEqual(TA.angle_names[1], 'A2')
+            self.assertEqual(TA.angle_names[2], 'A3')
 
             # these are all illegal
             bads = (
