@@ -121,7 +121,7 @@ class Triangle:
     # better filter than the positive (acute/obtuse) predicate, especially
     # if any angles are within floating point tolerance of pi/2.
     #
-    def __init__(self, triangle_filter=None, **kwargs):
+    def __init__(self, *args, triangle_filter=None, **kwargs):
         """Create a Triangle given three params (SSS/SSA/SAS/AAS/ASA).
 
         Examples:
@@ -130,7 +130,21 @@ class Triangle:
 
         Argument triangle_filter can be used to choose when SSA is ambiguous.
         See documentation for details.
+
+        For convenience, if the arguments are in a dict the alternate form:
+          t = Triangle(somedict)
+
+        is accepted; it is equivalent to:
+          t = Triangle(**somedict)
+
         """
+
+        if args:
+            if len(args) != 1:
+                raise TypeError(f"invalid arguments '{args!r}'")
+            if kwargs:
+                raise TypeError(f"can't specify args AND kwargs")
+            kwargs = args[0]      # it should be a dict, will find out below!
 
         # The __repr__ is the original parameters, in a canonical order.
         self.__origparams = [
@@ -165,6 +179,11 @@ class Triangle:
                     raise ValueError(f"angle {k!r} (={v}) >= π")
             elif k not in cls.side_names:
                 raise TypeError(f"{cls} got unexpected keyword arg {k!r}")
+
+    @classmethod
+    def sss(cls, *args):
+        """Factory/convenience: create a Triangle from sides w/out names."""
+        return Triangle({cls.side_names[i]: a for i, a in enumerate(args)})
 
     def __repr__(self):
         s = f"{self.__class__.__name__}("
@@ -300,7 +319,7 @@ class Triangle:
             else:
                 d2 = None
         else:
-            # SAS - much simpler
+            # SAS - much simpler; use law of cosines
             a = pm[sv[0]]
             c = pm[sv[1]]
             beta = pm[av[0]]
@@ -624,6 +643,10 @@ if __name__ == '__main__':
             a, b, c = self.t345.threesides()
             t543 = Triangle(a=c, b=b, c=a)
             self.assertTrue(t543.pythagorean())
+
+        def test_sss(self):
+            t = Triangle.sss(3, 4, 5)
+            self.assertEqual(list(t.threesides()), [3, 4, 5])
 
         def test_triangle_solutions(self):
             # these test vectors have been worked out by hand
