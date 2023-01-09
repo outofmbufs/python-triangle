@@ -551,7 +551,7 @@ class Triangle:
     #        side_names = ('s1', 's2', 's3')
     #
     @classmethod
-    def fromnames(cls, s, *s23, name=None):
+    def fromnames(cls, s, /, *s23, name=None):
         specs = (s, *s23)
         if len(specs) == 1 and len(s) == 1:   # "triangle name" format
             specs = ('<' + s + '1', '<' + s + '2', '<' + s + '3')
