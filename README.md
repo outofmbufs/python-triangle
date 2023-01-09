@@ -111,9 +111,9 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`scale(factor)`: Adjusts (multiplies) all three sides by `factor`.
 
-* t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`). Can be used as a `triangle_filter'.
+* t.`equilateral()`: Returns True if the `t` is equilateral. Uses `math.isclose()` as the definition of equality (with default `rel_tol`). Can be used as a `triangle_filter`.
 
-* t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle. Can be used as a `triangle_filter'.
+* t.`isoceles()`: Returns True if `t` is an equilateral triangle, using `math.isclose()` for comparisons. An equilateral triangle will also be an isoceles triangle. Can be used as a `triangle_filter`.
 
 * t.`pythagorean()`: Returns True if `t` is a Pythagorean (i.e., Right) triangle. Can be used as a `triangle_filter`. Angles are compared to pi/2 using `isclose`.
 
@@ -131,7 +131,7 @@ where `p1`, `p2`, and `p3` are the three parameter names that were supplied when
 
 * t.`similar(t2)`: Returns True if `t` and `t2` are "similar". Two triangles are similar if one can be converted to the other by any combination of linearly scaling (all) the sides and performing rotation/reflection. Uses isclose()
 
-* Triangle.`fromnames(s, *s23, name=None)`: Factory for creating a subclass with different angle and side names. `See 'fromnames()` section below for details.
+* Triangle.`fromnames(s, *s23, name=None)`: Factory for creating a subclass with different angle and side names. `See `fromnames()` section below for details.
 
 
 ### More about `sss_solutions`
